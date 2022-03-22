@@ -1,1 +1,13 @@
--50
+
+<testSubA><http://www.cw.org/problem3/#predicate1> true .
+<testSubB><http://www.cw.org/problem3/#predicate2> true .
+<testSubC><http://www.cw.org/problem3/#predicate3> true .
+<testSubA><http://www.cw.org/problem3/#predicate4> true .
+<testSubB><http://www.cw.org/problem3/#predicate5> true .
+<testSubC><http://www.cw.org/problem3/#predicate6> true .
+<testSubC><problem3/#predicate2> true .
+
+
+<prob4A> <testPredA> <prob4B> .
+<prob4C> <testPredB> <prob4D> .
+<prob4E> <testPredC> <prob4F> .

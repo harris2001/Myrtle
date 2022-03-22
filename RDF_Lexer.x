@@ -7,31 +7,37 @@ import System.Environment
 %wrapper "posn" 
 $digit = 0-9     
 -- digits 
-$alpha = [\+\-]?    
+$alpha = [a-zA-Z]
 -- alphabetic characters
+
 
 tokens :-
 $white+       ; 
-  "--".*        ; 
-  "forward"       { \p s -> TokenForward p}
-  "backward"      { \p s -> TokenBackward p }
-  "left"          { \p s -> TokenLeft p }
-  "right"         { \p s -> TokenRight p }
-  "obstacle"      { \p s -> TokenObstacle p}
-  "otherwise"     { \p s -> TokenOtherwise p}
-  $digit+         { \p s -> TokenSteps p (read s) }
+  "."                     { \p s -> TokenDot p }
+  ":"                     { \p s -> TokenColon p }
+  ","                     { \p s -> TokenComa p }
+  ";"                     { \p s -> TokenSemiColon p }
+  \"$alpha+\"             { \p s -> TokenString p s }
+  "<"("http://"|"https://")?[\. \/ \# $alpha $digit]*">"    { \p s -> TokenUrl p s }
+  "true"                    { \p s -> TokenTrue p }
+  "false"                   { \p s -> TokenFalse p }
+  "@prefix"               { \p s -> TokenPrefix p }
+  [\+\-]?$digit+          { \p s -> TokenNumber p (read s) }
 {
 -- Each action has type ::  AlexPosn -> String -> Token 
 -- The token type: 
 
 data Token = 
-    TokenForward AlexPosn        |
-    TokenBackward AlexPosn       |
-    TokenLeft AlexPosn           |
-    TokenRight AlexPosn          |
-    TokenObstacle AlexPosn       |
-    TokenOtherwise AlexPosn      |
-    TokenSteps AlexPosn Int
+      TokenDot AlexPosn               |
+      TokenColon AlexPosn             |
+      TokenComa AlexPosn              |
+      TokenSemiColon AlexPosn         |
+      TokenString AlexPosn String     |
+      TokenUrl AlexPosn String        |
+      TokenTrue AlexPosn              |
+      TokenFalse AlexPosn             |
+      TokenPrefix AlexPosn            |
+      TokenNumber AlexPosn Int
   deriving (Eq,Show) 
 
 -- BNF GRAMMAR --
