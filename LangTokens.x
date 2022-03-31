@@ -40,17 +40,22 @@ $white+       ;
   filter         { tok (\p s -> TokenFilter p) }
   map            { tok (\p s -> TokenMap p) }
   union          { tok (\p s -> TokenUnion p) }
+  join           { tok (\p s -> TokenJoin p) }
   where          { tok (\p s -> TokenWhere p) }
   and            { tok (\p s -> TokenAnd p) }
   or             { tok (\p s -> TokenOr p) }
   $alpha [$alpha $digit \_ \’]*   { \p s -> TokenVar p s }
-  [$alpha $digit \_ \’ \. \! \£ \$ \% \^ \& \* \( \) \- \+ \~ \# \@ \¬ \| \`]+  { tok (\p s -> TokenText p s) }
+  \" [$printable # \"]+ \" { tok (\p s -> TokenText p (removeQuot s)) }
+  \' [$printable # \']+ \' { tok (\p s -> TokenText p (removeQuot s)) }
 
 { 
 -- Each action has type :: AlexPosn -> String -> LangToken 
 
 -- Helper function
 tok f p s = f p s
+
+removeQuot :: String -> String
+removeQuot = tail . init
 
 -- The token type: 
 data LangToken = 
@@ -83,6 +88,7 @@ data LangToken =
   TokenFilter AlexPosn           |
   TokenMap AlexPosn              |
   TokenUnion AlexPosn            |
+  TokenJoin AlexPosn             |
   TokenWhere AlexPosn            |
   TokenAnd AlexPosn              |
   TokenOr AlexPosn               |
@@ -120,6 +126,7 @@ tokenPosn (TokenAll (AlexPn a l c)) = show(l) ++ ":" ++ show(c)
 tokenPosn (TokenFilter (AlexPn a l c)) = show(l) ++ ":" ++ show(c)
 tokenPosn (TokenMap (AlexPn a l c)) = show(l) ++ ":" ++ show(c)
 tokenPosn (TokenUnion (AlexPn a l c)) = show(l) ++ ":" ++ show(c)
+tokenPosn (TokenJoin(AlexPn a l c)) = show(l) ++ ":" ++ show(c)
 tokenPosn (TokenWhere(AlexPn a l c)) = show(l) ++ ":" ++ show(c)
 tokenPosn (TokenAnd (AlexPn a l c)) = show(l) ++ ":" ++ show(c)
 tokenPosn (TokenOr (AlexPn a l c)) = show(l) ++ ":" ++ show(c)
