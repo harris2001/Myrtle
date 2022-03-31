@@ -143,10 +143,16 @@ getExp (exp, base, prefixes) option | option==1 = [exp]
 
 -- Applies the modify function to PredicateObject datatype
 modifyPredObj :: PredicateObject -> Exp -> [Exp] -> PredicateObject
-modifyPredObj (PredObj (Pred p) (UrlObj obj)) b ps = (PredObj(Pred(rebaseUrl p b ps))(UrlObj(rebaseUrl obj b ps)))
-modifyPredObj (PredObj (Pred p) obj) b ps = (PredObj(Pred(rebaseUrl p b ps)) obj)
+modifyPredObj (PredObj (Pred p) obj) b ps = (PredObj(Pred(rebaseUrl p b ps))(modifyObj obj b ps))
 modifyPredObj (PredObjList p1 p2) b ps = (PredObjList (modifyPredObj p1 b ps) (modifyPredObj p2 b ps))
-modifyPredObj predObj _ _ = error "List of predicates needs to be defined"
+
+
+-- Rebases Objects (only changes urlObj)
+modifyObj :: Object -> Exp -> [Exp] -> Object
+modifyObj (ObjList obj1 obj2) b ps = (ObjList (modifyObj obj1 b ps)(modifyObj obj2 b ps))
+modifyObj (UrlObj url) b ps = (UrlObj (rebaseUrl url b ps))
+modifyObj u b ps = u
+
 
 main :: IO()
 main = do 
