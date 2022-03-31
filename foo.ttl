@@ -27,4 +27,4 @@ p:subjectE r:predicateE q:objectE .
 <http://www.cw.org/#problem2> <testPredA> false .
 <#problem2> <testPredB> true .
 <#problemNot2> <testPredB> true .
-<#problemNot2> <testPredB> false 
+<#problemNot2> <testPredB> false .

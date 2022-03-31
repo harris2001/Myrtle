@@ -31,6 +31,7 @@ Exp : Subject PredicateObject                    { Triplet $1 $2 }
     | base Url                                   { Base $2 }
     | prefix variable ":" Url                    { Prefix $2 $4 }
     | Exp "." Exp                                { Seq $1 $3 }
+    | Exp "."                                    { $1 }
 
 Subject : Url                                    { Sbj $1 }
 
@@ -156,7 +157,7 @@ modifyObj u b ps = u
 
 main :: IO()
 main = do 
-        contents <- readFile "game.txt"
+        contents <- readFile "foo.ttl"
         let tokens = alexScanTokens contents
         -- print(tokens)
         let expression = parseCalc tokens
