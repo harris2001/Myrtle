@@ -24,6 +24,7 @@ import System.Environment
   base          {TokenBase _ }
   number        {TokenNumber _ $$}
 
+%left "," ";" "."
 %% 
 
 Exp : Subject PredicateObject                    { Triplet $1 $2 }
@@ -50,6 +51,7 @@ Boolean : true                          { BTrue }
 Url : url                               { FinalUrl $1 }
     | unbasedUrl                        { BaseNeededUrl ("<@base:"++(tail $1))}
     | unprefixedUrl                     { PrefixNeededUrl ("<"++$1++">") }
+
 
 {
 -- ParseError function is used (mostly) for debugging purposes
@@ -99,9 +101,49 @@ data Exp = Triplet Subject PredicateObject
          | Seq Exp Exp
       deriving Show
 
+-- Returns the string value of the Url datatype
+getUrl ::  Url -> String
+getUrl (FinalUrl u) = u
+getUrl (BaseNeededUrl u) = u
+getUrl (PrefixNeededUrl u) = u
+
 -- Takes a Url, the base url and the list of prefixes and return the reformed url
--- modify :: Url Base [Prefix] -> Url
--- modify (Triplet:exp) = 
+rebaseUrl :: Url -> Exp -> [Exp] -> Url
+rebaseUrl (FinalUrl url) _ _ = FinalUrl url
+rebaseUrl (BaseNeededUrl url) (Base (FinalUrl base)) _ = FinalUrl ("<<<<"++tail (takeWhile('>'/=) base)++(tail (dropWhile(':'/=)url)))
+rebaseUrl (PrefixNeededUrl url) _ [] = error "No more prefixes found to unpack"
+rebaseUrl u@(PrefixNeededUrl url) b@(Base (FinalUrl base)) ps@((Prefix prefix (FinalUrl mapping)):p@prefixes) | prefix == (tail(takeWhile(':'/=) url)) = FinalUrl ("<"++tail (takeWhile('>'/=)mapping)++(tail (dropWhile(':'/=)url))++">")
+                                                                                                              | otherwise = rebaseUrl u b p
+rebaseUrl u b ps = error (getUrl u)
+--f = rebaseUrl (PrefixNeededUrl "p:asgasg") (Base (FinalUrl "https://test/t/")) [Prefix "p" (FinalUrl "<http://www.cw.org/qprefix/>")]
+
+-- Replaces all the occurences of Url in an Exp datatype
+modify :: Exp -> Exp -> [Exp] -> (Exp, Exp, [Exp])
+modify (Base base) b ps = (Base base, Base base, ps)
+modify pref@(Prefix s u) b ps = ((Prefix s u), b, (ps++[pref]))
+modify pref@(Prefix s url@(BaseNeededUrl u)) b ps = ((Prefix s url), b, (ps++[Prefix s (rebaseUrl url b ps)]))
+modify (Triplet (Sbj subj) predObj) b ps = ((Triplet (Sbj (rebaseUrl subj b ps)) (modifyPredObj predObj b ps)), b, ps)
+modify (Seq exp1 exp2) b ps = ((Seq exp11 exp22), base22, prefixes22)
+            where e1 = getExp (modify exp1 b ps)
+                  exp11 = head (e1 1)
+                  base11 = head (e1 2)
+                  prefixes11 = e1 3
+                  e2 = (getExp (modify exp2 base11 prefixes11))
+                  exp22 = head (e2 1)
+                  base22 = head (e2 2)
+                  prefixes22 = e2 3
+-- modify exp p ps = exp p ps
+
+getExp :: (Exp, Exp, [Exp]) -> Int -> [Exp]
+getExp (exp, base, prefixes) option | option==1 = [exp]
+                                    | option==2 = [base]
+                                    | option==3 = prefixes
+                                    | otherwise = error "Invalid option"
+
+-- Applies the modify function to PredicateObject datatype
+modifyPredObj :: PredicateObject -> Exp -> [Exp] -> PredicateObject
+modifyPredObj (PredObj (Pred p) (UrlObj obj)) b ps = (PredObj(Pred(rebaseUrl p b ps))(UrlObj(rebaseUrl obj b ps)))
+modifyPredObj predObj _ _ = predObj
 
 main :: IO()
 main = do 
@@ -109,5 +151,6 @@ main = do
         let tokens = alexScanTokens contents
         -- print(tokens)
         let expression = parseCalc tokens
-        print(expression)
+        -- print(expression)
+        print(head(getExp (modify expression (Base(FinalUrl "")) []) 1))
 } 
