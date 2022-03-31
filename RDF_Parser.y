@@ -145,6 +145,7 @@ getExp (exp, base, prefixes) option | option==1 = [exp]
 modifyPredObj :: PredicateObject -> Exp -> [Exp] -> PredicateObject
 modifyPredObj (PredObj (Pred p) (UrlObj obj)) b ps = (PredObj(Pred(rebaseUrl p b ps))(UrlObj(rebaseUrl obj b ps)))
 modifyPredObj (PredObj (Pred p) obj) b ps = (PredObj(Pred(rebaseUrl p b ps)) obj)
+modifyPredObj (PredObjList p1 p2) b ps = (PredObjList (modifyPredObj p1 b ps) (modifyPredObj p2 b ps))
 modifyPredObj predObj _ _ = error "List of predicates needs to be defined"
 
 main :: IO()
@@ -153,6 +154,6 @@ main = do
         let tokens = alexScanTokens contents
         -- print(tokens)
         let expression = parseCalc tokens
-        print(expression)
+        -- print(expression)
         print(head(getExp (modify expression (Base(FinalUrl "")) []) 1))
 } 
