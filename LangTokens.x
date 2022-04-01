@@ -21,8 +21,8 @@ $white+       ;
   "-l"           { tok (\p s -> TokenLJoin p) }
   "-r"           { tok (\p s -> TokenRJoin p) }
   \<             { tok (\p s -> TokenLT p) }
-  \>             { tok (\p s -> TokenGT p)}
-  =              { tok (\p s -> TokenEQ p)}
+  \>             { tok (\p s -> TokenGT p) }
+  =              { tok (\p s -> TokenEQ p) }
   \+             { tok (\p s -> TokenPlus p) }
   \-             { tok (\p s -> TokenMinus p) }
   \*             { tok (\p s -> TokenTimes p) }
@@ -32,7 +32,6 @@ $white+       ;
   \)             { tok (\p s -> TokenRParen p) }
   \[             { tok (\p s -> TokenLBrack p) }
   \]             { tok (\p s -> TokenRBrack p) }
-  \"             { tok (\p s -> TokenQuot p) }
   \|             { tok (\p s -> TokenPipe p) }
   \?             { tok (\p s -> TokenQuestion p) }
   \:             { tok (\p s -> TokenColon p) }
@@ -45,8 +44,8 @@ $white+       ;
   and            { tok (\p s -> TokenAnd p) }
   or             { tok (\p s -> TokenOr p) }
   $alpha [$alpha $digit \_ \’]*   { \p s -> TokenVar p s }
-  \" [$printable # \"]+ \" { tok (\p s -> TokenText p (removeQuot s)) }
-  \' [$printable # \']+ \' { tok (\p s -> TokenText p (removeQuot s)) }
+  \" [$printable # \"]+ \" { tok (\p s -> TokenString p (removeQuot s)) }
+  \' [$printable # \']+ \' { tok (\p s -> TokenString p (removeQuot s)) }
 
 { 
 -- Each action has type :: AlexPosn -> String -> LangToken 
@@ -80,7 +79,6 @@ data LangToken =
   TokenLBrack AlexPosn           |
   TokenRBrack AlexPosn           |
   TokenComma AlexPosn            |
-  TokenQuot AlexPosn             |
   TokenPipe AlexPosn             |
   TokenQuestion AlexPosn         |
   TokenColon AlexPosn            |
@@ -93,7 +91,7 @@ data LangToken =
   TokenAnd AlexPosn              |
   TokenOr AlexPosn               |
   TokenVar AlexPosn String       |
-  TokenText AlexPosn String
+  TokenString AlexPosn String
     deriving (Eq,Show) 
 
 tokenPosn :: LangToken -> String
@@ -118,7 +116,6 @@ tokenPosn (TokenRParen (AlexPn a l c)) = show(l) ++ ":" ++ show(c)
 tokenPosn (TokenLBrack (AlexPn a l c)) = show(l) ++ ":" ++ show(c)
 tokenPosn (TokenRBrack (AlexPn a l c)) = show(l) ++ ":" ++ show(c)
 tokenPosn (TokenComma (AlexPn a l c)) = show(l) ++ ":" ++ show(c)
-tokenPosn (TokenQuot (AlexPn a l c)) = show(l) ++ ":" ++ show(c)
 tokenPosn (TokenPipe (AlexPn a l c)) = show(l) ++ ":" ++ show(c)
 tokenPosn (TokenQuestion (AlexPn a l c)) = show(l) ++ ":" ++ show(c)
 tokenPosn (TokenColon (AlexPn a l c)) = show(l) ++ ":" ++ show(c)
@@ -131,6 +128,6 @@ tokenPosn (TokenWhere(AlexPn a l c)) = show(l) ++ ":" ++ show(c)
 tokenPosn (TokenAnd (AlexPn a l c)) = show(l) ++ ":" ++ show(c)
 tokenPosn (TokenOr (AlexPn a l c)) = show(l) ++ ":" ++ show(c)
 tokenPosn (TokenVar (AlexPn a l c) _) = show(l) ++ ":" ++ show(c)
-tokenPosn (TokenText (AlexPn a l c) _) = show(l) ++ ":" ++ show(c)
+tokenPosn (TokenString (AlexPn a l c) _) = show(l) ++ ":" ++ show(c)
 
 }
