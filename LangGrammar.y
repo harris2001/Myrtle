@@ -55,7 +55,7 @@ Query1 : Func StringExp                                { FuncStackB $1 }
        | Func StringExp '|' Query2                     { FuncStackB $3 $1 }
 
 Query2 : Func                                          { FuncStackB $1 }              
-       | Func '|' Query1                               { FuncStack $3 $1 }
+       | Func '|' Query2                               { FuncStack $3 $1 }
 
 CreateVar : var '=' Literal1                           { BVarEnv $1 }
           | var '=' Literal1 '|' CreateVar             { VarEnv $1 $3 }

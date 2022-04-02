@@ -63,8 +63,6 @@ Query : Func StringExp                                         { Query $1 Empty 
       | Func StringExp "|" Query2
       | Querry where CreateVar                         { Query $1 $3 }
 
-qUERY -> Query where ... -> Query where ... where ...
-
 
 -- filter (_,pred1,_)  | filter (_,pred2,_) | map (act)
 --   where pred1 = ...
