@@ -14,15 +14,15 @@ import LangTokens
   obj            { TokenObj _ }
   true           { TokenTrue _ }
   false          { TokenFalse _ }
-  -l             { TokenLJoin _ }
-  -r             { TokenRJoin _ }
+  '-l'           { TokenLJoin _ }
+  '-r'           { TokenRJoin _ }
   '<'            { TokenLT _ }
   '>'            { TokenGT _ }
   '='            { TokenEQ _ }
   '+'            { TokenPlus _ }
-  '-             { TokenMinus _ }
+  '-'            { TokenMinus _ }
   '*'            { TokenTimes _ }
-  '/             { TokenDiv _ }
+  '/'            { TokenDiv _ }
   '^'            { TokenExp _ }
   '('            { TokenLParen _ }
   ')'            { TokenRParen _ }
@@ -43,71 +43,64 @@ import LangTokens
   var            { TokenVar _ $$ }
 
 
-%left arr
-%right let
-%right in
-%nonassoc if
-%nonassoc then
-%nonassoc else
-%left fst snd
-%nonassoc '<'
-%left '+'
-%left ','
-%nonassoc int true false var '(' ')'
-%left lam
-%left APP
-
+%left '+' '-' 
+%left '*' '/' 
+%left '^'
+%left NEG 
 %% 
-Query : Query1                                         { Query $1 }
-      | Query1 where CreateVar                         { QueryWhere $1 $3 }
+Query : Query1                                         { Query $1 Empty }
+      | Query1 where CreateVar                         { Query $1 $3 }
 
 Query1 : Func StringExp                                { FuncStackB $1 }
-       | Func StringExp '|' Query1                     { FuncStackB $3 $1 }
+       | Func StringExp '|' Query2                     { FuncStackB $3 $1 }
 
-Query2 : Func                                         { FuncStackB $1 }              
-       | Func '|' Query1                              { FuncStack $3 $1 }
+Query2 : Func                                          { FuncStackB $1 }              
+       | Func '|' Query1                               { FuncStack $3 $1 }
 
-CreateVar : var = Literal1                            { BVarEnv $1 }
-          | var = Literal1 '|' CreateVar              { VarEnv $1 $3 }
+CreateVar : var '=' Literal1                           { BVarEnv $1 }
+          | var '=' Literal1 '|' CreateVar             { VarEnv $1 $3 }
 
-Func : filter (StringExp, StringExp, Literal)         { Filter $3 $5 $7 }
-     | filter (_, StringExp, Literal)                 { Filter Any $5 $7 }
-     | filter (StringExp, _, Literal)                 { Filter $3 Any $7 }
-     | filter (_, _, Literal)                         { Filter Any Any $7 }
-     | map (Cond)                                     { Map $3 }
-     | union SList                                    { Union $2 }
-     | join JoinOption (Node, Node) SList             { Join $2 $4 $6 $8 }
+Func : filter '('FilterEl',' FilterEl',' Literal')'    { Filter $3 $5 $7 }
+     | map '('Cond')'                                  { Map $3 }
+     | union SList                                     { Union $2 }
+     | join JoinOption '('Node',' Node')' SList        { Join $2 $4 $6 $8 }
 
-JoinOption : -l                       { LeftJoin }
-           | -r                       { RightJoin }
-           | -l -r                    { LeftRightJoin }
-           | -r -l                    { LeftRightJoin }
+FilterEl : '_'                        { Any }
+         | List                       { $1 }
 
-SList : [ SListElem ]                  { $2 }
 
-SListElem : StringExp                  { SListEl $1 }
-          | StringExp1, SListElem      { SListEls $1 $3 }            
+JoinOption : '-l' '-r'                { BiDirJoin }
+           | '-r' '-l'                { BiDirJoin }
+           | '-l'                     { LeftJoin }
+           | '-r'                     { RightJoin }
 
-List : [ ListElem ]                    { $2 }
+SList : '[' SListElem ']'             { $2 }
+      | StringExp1                    { $1 }
 
-ListElem : Literal1                    { ListEl $1 }
-         | Literal1 , ListElem         { ListEls $1 $3 }
+SListElem : StringExp1                { SListEl $1 }
+          | StringExp1 ',' SListElem  { SListEls $1 $3 }            
 
-Cond : Action
-     | (BoolExp)? Cond : Cond        {If $2 $5 $7}
+List : '[' ListElem ']'               { $2 }
+     | Literal1                       { $1 }
 
-Action : subj = StringExp            { AssignSubj $3 }
-       | pred = StringExp            { AssignPred $3 }
-       | obj = IntExp                { AssignObj $3 }
-       | obj = BoolExp               { AssignObj $3 }
-       | obj = StringExp             { AssignObj $3 }
+ListElem : Literal1                   { ListEl $1 }
+         | Literal1 ',' ListElem      { ListEls $1 $3 }
 
-Literal : Literal1
-        | _                          { Any }
+Cond : Action                         { $1 }
+     | '('BoolExp')''?' Cond':'Cond   { If $2 $5 $7 }
 
-Literal1 : IntExp
-         | BoolExp
-         | StringExp
+Action : subj '=' StringExp           { AssignSubj $3 }
+       | pred '=' StringExp           { AssignPred $3 }
+       | obj '=' IntExp               { AssignObj $3 }
+       | obj '=' BoolExp              { AssignObj $3 }
+       | obj '=' StringExp            { AssignObj $3 }
+
+Literal : Literal1                    { $1 }
+        | '_'                         { Any }
+
+Literal1 : IntExp                     { $1 }
+         | BoolExp                    { $1 }
+         | StringExp                  { $1 }
 
 IntExp : IntExp '+' IntExp            { Plus $1 $3 } 
        | IntExp '-' IntExp            { Minus $1 $3 } 
@@ -121,29 +114,31 @@ IntExp : IntExp '+' IntExp            { Plus $1 $3 }
 
 BoolExp : BoolExp and BoolExp         { And $1 $3 }
         | BoolExp or BoolExp          { Or $1 $3 }
-        | IntExp == IntExp            { EQ $1 $4 }
-        | IntExp < IntExp             { LT $1 $3 }
-        | IntExp > IntExp             { GT $1 $3 }
-        | IntExp < obj                { GT $1 Obj }
-        | obj < IntExp                { GT Obj $3 }
-        | StringExp == StringExp      { EQ $1 $4 }
-        | StringExp == subj           { EQ $1 Subj }
-        | subj == StringExp           { EQ Subj $4 }
-        | StringExp == pred           { EQ $1 Pred }
-        | pred == StringExp           { EQ Pred $4 }
-        | StringExp == obj            { EQ $1 Obj }
-        | obj == StringExp            { EQ Obj $4 }
+        | IntExp '=''=' IntExp        { EQ $1 $4 }
+        | IntExp '<' IntExp           { LT $1 $3 }
+        | IntExp '>' IntExp           { GT $1 $3 }
+        | IntExp '<' obj              { GT $1 Obj }
+        | obj '<' IntExp              { GT Obj $3 }
+        | StringExp '=''=' StringExp  { EQ $1 $4 }
+        | StringExp '=''=' subj       { EQ $1 Subj }
+        | subj '=''=' StringExp       { EQ Subj $4 }
+        | StringExp '=''=' pred       { EQ $1 Pred }
+        | pred '=''=' StringExp       { EQ Pred $4 }
+        | StringExp '=''=' obj        { EQ $1 Obj }
+        | obj '=''=' StringExp        { EQ Obj $4 }
         | true                        { QTrue }
         | false                       { QFalse }
         | var                         { Var $1 }
 
-
 StringExp : String                    { QString $1 }
           | var                       { Var $1 }
 
-Node : subj                                     { Subj } 
-     | pred                                     { Pred } 
-     | obj                                      { Obj }
+StringExp1 : StringExp                { $1 }
+           | '_'                      { Any }
+
+Node : subj                           { Subj } 
+     | pred                           { Pred } 
+     | obj                            { Obj }
 
 
 { 
