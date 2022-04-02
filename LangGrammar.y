@@ -143,7 +143,7 @@ Node : subj                           { Subj }
 
 
 { 
-parseError :: [ToyToken] -> a
+parseError :: [LangToken] -> a
 parseError [] = error "Unknown Parse Error" 
 parseError (t:ts) = error ("Parse error at line:column " ++ (tokenPosn t))
 
