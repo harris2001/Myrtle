@@ -43,8 +43,8 @@ import LangTokens
   var            { TokenVar _ $$ }
 
 
-%left '+' '-' 
-%left '*' '/' 
+%left '+' '-' or
+%left '*' '/' and
 %left '^'
 %left NEG 
 %% 
@@ -126,6 +126,7 @@ BoolExp : BoolExp and BoolExp         { And $1 $3 }
         | pred '=''=' StringExp       { EQ Pred $4 }
         | StringExp '=''=' obj        { EQ $1 Obj }
         | obj '=''=' StringExp        { EQ Obj $4 }
+        | '(' BoolExp ')'             { $2 }
         | true                        { QTrue }
         | false                       { QFalse }
         | var                         { Var $1 }
