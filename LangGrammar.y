@@ -57,8 +57,11 @@ Query1 : Func StringExp                                { FuncStackB $1 }
 Query2 : Func                                          { FuncStackB $1 }              
        | Func '|' Query2                               { FuncStack $3 $1 }
 
-CreateVar : var '=' Literal1                           { BVarEnv $1 }
-          | var '=' Literal1 '|' CreateVar             { VarEnv $1 $3 }
+CreateVar : var '=' IntExp                             { IntVar $1 $3 }
+          | var '=' StringExp                          { StringVar $1 $3 }
+          | var '=' BoolExp                            { BoolVar $1 $3 }
+          | var '=' IntOp                              { IntOpVar $1 $3 }
+          | CreateVar CreateVar                        { VarEnv $1 $2 }
 
 Func : filter '('FilterEl',' FilterEl',' Literal')'    { Filter $3 $5 $7 }
      | map '('Cond')'                                  { Map $3 }
@@ -69,8 +72,8 @@ FilterEl : '_'                        { Any }
          | List                       { $1 }
 
 
-JoinOption : '-l' '-r'                { BiDirJoin }
-           | '-r' '-l'                { BiDirJoin }
+JoinOption : '-r' '-l'                { BidirectJoin }
+           | '-l' '-r'                { BidirectJoin }
            | '-l'                     { LeftJoin }
            | '-r'                     { RightJoin }
 
@@ -91,9 +94,10 @@ Cond : Action                         { $1 }
 
 Action : subj '=' StringExp           { AssignSubj $3 }
        | pred '=' StringExp           { AssignPred $3 }
-       | obj '=' IntExp               { AssignObj $3 }
-       | obj '=' BoolExp              { AssignObj $3 }
-       | obj '=' StringExp            { AssignObj $3 }
+       | obj '=' StringExp            { AssignObjStr $3 }
+       | obj '=' IntExp               { AssignObjInt $3 }
+       | obj '=' BoolExp              { AssignObjBool $3 }
+       | obj '=' IntOp                { AssignObjOp $3 }
 
 Literal : Literal1                    { $1 }
         | '_'                         { Any }
@@ -111,6 +115,25 @@ IntExp : IntExp '+' IntExp            { Plus $1 $3 }
        | '-' IntExp %prec NEG         { Negate $2 } 
        | int                          { QInt $1 } 
        | var                          { Var $1 }
+
+IntOp : IntOp '+' IntOp               { ObPlus $1 $3 }
+      | IntExp '+' IntOp              { ObPlus $1 $3 }
+      | IntOp '+' IntExp              { ObPlus $1 $3 }
+      | IntOp '-' IntOp               { ObMinus $1 $3 }
+      | IntExp '-' IntOp              { ObMinus $1 $3 }
+      | IntOp '-' IntExp              { ObMinus $1 $3 }
+      | IntOp '*' IntOp               { ObTimes $1 $3 }
+      | IntExp '*' IntOp              { ObTimes $1 $3 }
+      | IntOp '*' IntExp              { ObTimes $1 $3 } 
+      | IntOp '/' IntOp               { ObDiv $1 $3 }
+      | IntExp '/' IntOp              { ObDiv $1 $3 }
+      | IntOp '/' IntExp              { ObDiv $1 $3 }
+      | IntOp '^' IntOp               { ObExpo $1 $3 }
+      | IntExp '^' IntOp              { ObExpo $1 $3 }
+      | IntOp '^' IntExp              { ObExpo $1 $3 }
+      | '(' IntOp ')'                 { $2 } 
+      | '-' IntOp %prec NEG           { Negate $2 }
+      | obj                           { $1 }
 
 BoolExp : BoolExp and BoolExp         { And $1 $3 }
         | BoolExp or BoolExp          { Or $1 $3 }
