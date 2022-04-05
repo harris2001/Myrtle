@@ -42,7 +42,7 @@ import LangTokens
   or             { TokenOr _ }
   var            { TokenVar _ $$ }
 
-
+%left '='
 %left '+' '-' or
 %left '*' '/' and
 %left '^'
@@ -54,7 +54,7 @@ import LangTokens
 -- or
 -- fun1 "input.ttl" | fun2 | fun3 where var = ...
 Query : Query1                                         { Query $1 Empty }
-      | Query1 where CreateVars                         { Query $1 $3 }
+      | Query1 where CreateVars                        { Query $1 $3 }
 
 -- This is a separate rule because the input file is only put at the beginning
 Query1 : Func StringExp                                { FuncStackB $1 }
@@ -82,113 +82,138 @@ Func : filter '('FilterEl',' FilterEl',' Literal')'    { Filter $3 $5 $7 }
      | join JoinOption '('Node',' Node')' SList        { Join $2 $4 $6 $8 }
 
 -- The parameters allowed in the filter function
-FilterEl : '_'                        { Any }
-         | List                       { $1 }
+FilterEl : '_'                                         { Any }
+         | List                                        { $1 }
 
 -- The options of a join
-JoinOption : '-r' '-l'                { BidirectJoin }
-           | '-l' '-r'                { BidirectJoin }
-           | '-l'                     { LeftJoin }
-           | '-r'                     { RightJoin }
+JoinOption : '-r' '-l'                                 { BidirectJoin }
+           | '-l' '-r'                                 { BidirectJoin }
+           | '-l'                                      { LeftJoin }
+           | '-r'                                      { RightJoin }
 
 -- List of strings
-SList : '[' SListElem ']'             { $2 }
-      | StringExp1                    { $1 }
+SList : '[' SListElem ']'                              { $2 }
+      | StringExp1                                     { $1 }
 
-SListElem : StringExp1                { SListEl $1 }
-          | StringExp1 ',' SListElem  { SListEls $1 $3 }            
+SListElem : StringExp1                                 { SListEl $1 }
+          | StringExp1 ',' SListElem                   { SListEls $1 $3 }            
 
 -- List of any type. Note that the list can hold multiple types.
-List : '[' ListElem ']'               { $2 }
-     | Literal1                       { $1 }
+List : '[' ListElem ']'                                { $2 }
+     | Literal1                                        { $1 }
 
-ListElem : Literal1                   { ListEl $1 }
-         | Literal1 ',' ListElem      { ListEls $1 $3 }
+ListElem : Literal1                                    { ListEl $1 }
+         | Literal1 ',' ListElem                       { ListEls $1 $3 }
 
 -- Conditions are used for the map function
-Cond : Action                         { $1 }
-     | '('BoolExp')''?' Cond':'Cond   { If $2 $5 $7 }
+Cond : Action                                         { $1 }
+     | '('BoolExp')''?' Cond':'Cond                   { If $2 $5 $7 }
 
 -- Actions are executed when conditions are satisfied
-Action : subj '=' StringExp           { AssignSubj $3 }
-       | pred '=' StringExp           { AssignPred $3 }
-       | obj '=' StringExp            { AssignObjStr $3 }
-       | obj '=' IntExp               { AssignObjInt $3 }
-       | obj '=' BoolExp              { AssignObjBool $3 }
-       | obj '=' IntOp                { AssignObjOp $3 }
+Action : subj '=' StringExp                           { AssignSubj $3 }
+       | pred '=' StringExp                           { AssignPred $3 }
+       | obj '=' String                               { AssignObjStr $3 }
+       | obj '=' IntExp                               { AssignObjInt $3 }
+       | obj '=' BoolExp                              { AssignObjBool $3 }
+       | obj '=' IntOp                                { AssignObjOp $3 }
+       | obj '=' var                                  { AssignObjVar $3 }
 
 -- Literal includes strings, integers, booleans, and the wildcard any (_)
-Literal : Literal1                    { $1 }
-        | '_'                         { Any }
+Literal : Literal1                                    { $1 }
+        | '_'                                         { Any }
 
 -- Literal1 only includes strings, integers and booleans
-Literal1 : IntExp                     { $1 }
-         | BoolExp                    { $1 }
-         | StringExp                  { $1 }
+Literal1 : IntExp                                     { $1 }
+         | BoolExp                                    { $1 }
+         | StringExp                                  { $1 }
 
 -- Integer Expression
-IntExp : IntExp '+' IntExp            { Plus $1 $3 } 
-       | IntExp '-' IntExp            { Minus $1 $3 } 
-       | IntExp '*' IntExp            { Times $1 $3 } 
-       | IntExp '/' IntExp            { Div $1 $3 } 
-       | IntExp '^' IntExp            { Expo $1 $3 }
-       | '(' IntExp ')'               { $2 } 
-       | '-' IntExp %prec NEG         { Negate $2 } 
-       | int                          { QInt $1 } 
-       | var                          { Var $1 }
+IntExp : IntExp '+' IntExp %prec '+'                  { Plus $1 $3 } 
+       | var '+' IntExp %prec '+'                     { Plus $1 $3 }
+       | IntExp '+' var %prec '+'                     { Plus $1 $3 }
+       | IntExp '-' IntExp %prec '-'                  { Minus $1 $3 }
+       | var '-' IntExp %prec '-'                     { Minus $1 $3 }
+       | IntExp '-' var %prec '-'                     { Minus $1 $3 }
+       | IntExp '*' IntExp %prec '*'                  { Times $1 $3 }
+       | var '*' IntExp %prec '*'                     { Times $1 $3 }
+       | IntExp '*' var %prec '*'                     { Times $1 $3 }
+       | IntExp '/' IntExp %prec '/'                  { Div $1 $3 }
+       | var '/' IntExp %prec '/'                     { Div $1 $3 }
+       | IntExp '/' var %prec '/'                     { Div $1 $3 } 
+       | IntExp '^' IntExp %prec '^'                  { Expo $1 $3 }
+       | var '^' IntExp %prec '^'                     { Expo $1 $3 }
+       | IntExp '^' var  %prec '^'                    { Expo $1 $3 }
+       | '(' IntExp ')'                               { $2 } 
+       | '-' IntExp %prec NEG                         { Negate $2 } 
+       | int                                          { QInt $1 }
 
 -- Integer Operation on an Object
-IntOp : IntOp '+' IntOp               { ObPlus $1 $3 }
-      | IntExp '+' IntOp              { ObPlus $1 $3 }
-      | IntOp '+' IntExp              { ObPlus $1 $3 }
-      | IntOp '-' IntOp               { ObMinus $1 $3 }
-      | IntExp '-' IntOp              { ObMinus $1 $3 }
-      | IntOp '-' IntExp              { ObMinus $1 $3 }
-      | IntOp '*' IntOp               { ObTimes $1 $3 }
-      | IntExp '*' IntOp              { ObTimes $1 $3 }
-      | IntOp '*' IntExp              { ObTimes $1 $3 } 
-      | IntOp '/' IntOp               { ObDiv $1 $3 }
-      | IntExp '/' IntOp              { ObDiv $1 $3 }
-      | IntOp '/' IntExp              { ObDiv $1 $3 }
-      | IntOp '^' IntOp               { ObExpo $1 $3 }
-      | IntExp '^' IntOp              { ObExpo $1 $3 }
-      | IntOp '^' IntExp              { ObExpo $1 $3 }
-      | '(' IntOp ')'                 { $2 } 
-      | '-' IntOp %prec NEG           { Negate $2 }
-      | obj                           { $1 }
+IntOp : IntOp '+' IntOp                               { ObPlus $1 $3 }
+      | var '+' IntOp %prec '+'                       { ObPlus $1 $3 }
+      | IntOp '+' var %prec '+'                       { ObPlus $1 $3 }
+      | IntExp '+' IntOp %prec '+'                    { ObPlus $1 $3 }
+      | IntOp '+' IntExp %prec '+'                    { ObPlus $1 $3 }
+      | IntOp '-' IntOp %prec '-'                     { ObMinus $1 $3 }
+      | var '-' IntOp %prec '-'                       { ObMinus $1 $3 }
+      | IntOp '-' var %prec '-'                       { ObMinus $1 $3 }
+      | IntExp '-' IntOp %prec '-'                    { ObMinus $1 $3 }
+      | IntOp '-' IntExp %prec '-'                    { ObMinus $1 $3 }
+      | IntOp '*' IntOp %prec '*'                     { ObTimes $1 $3 }
+      | var '*' IntOp %prec '*'                       { ObTimes $1 $3 }
+      | IntOp '*' var %prec '*'                       { ObTimes $1 $3 }
+      | IntExp '*' IntOp %prec '*'                    { ObTimes $1 $3 }
+      | IntOp '*' IntExp %prec '*'                    { ObTimes $1 $3 } 
+      | IntOp '/' IntOp %prec '/'                     { ObDiv $1 $3 } 
+      | var '/' IntOp %prec '/'                       { ObDiv $1 $3 } 
+      | IntOp '/' var %prec '/'                       { ObDiv $1 $3 }
+      | IntExp '/' IntOp %prec '/'                    { ObDiv $1 $3 }
+      | IntOp '/' IntExp %prec '/'                    { ObDiv $1 $3 }
+      | IntOp '^' IntOp %prec '^'                     { ObExpo $1 $3 }
+      | var '^' IntOp %prec '^'                       { ObExpo $1 $3 }
+      | IntOp '^' var %prec '^'                       { ObExpo $1 $3 }
+      | IntExp '^' IntOp %prec '^'                    { ObExpo $1 $3 }
+      | IntOp '^' IntExp %prec '^'                    { ObExpo $1 $3 }
+      | '(' IntOp ')'                                 { $2 } 
+      | '-' IntOp %prec NEG                           { Negate $2 }
+      | obj                                           { $1 }
 
 -- Boolean Expression
-BoolExp : BoolExp and BoolExp         { And $1 $3 }
-        | BoolExp or BoolExp          { Or $1 $3 }
-        | IntExp '=''=' IntExp        { EQ $1 $4 }
-        | IntExp '<' IntExp           { LT $1 $3 }
-        | IntExp '>' IntExp           { GT $1 $3 }
-        | IntExp '<' obj              { GT $1 Obj }
-        | obj '<' IntExp              { GT Obj $3 }
-        | StringExp '=''=' StringExp  { EQ $1 $4 }
-        | StringExp '=''=' subj       { EQ $1 Subj }
-        | subj '=''=' StringExp       { EQ Subj $4 }
-        | StringExp '=''=' pred       { EQ $1 Pred }
-        | pred '=''=' StringExp       { EQ Pred $4 }
-        | StringExp '=''=' obj        { EQ $1 Obj }
-        | obj '=''=' StringExp        { EQ Obj $4 }
-        | '(' BoolExp ')'             { $2 }
-        | true                        { QTrue }
-        | false                       { QFalse }
-        | var                         { Var $1 }
+BoolExp : BoolExp and BoolExp %prec and               { And $1 $3 }
+        | var and BoolExp %prec and                   { And $1 $3 }
+        | BoolExp and var %prec and                   { And $1 $3 }
+        | BoolExp or BoolExp %prec or                 { Or $1 $3 }
+        | var or BoolExp %prec or                     { Or $1 $3 }
+        | BoolExp or var %prec or                     { Or $1 $3 }
+        | IntExp '=''=' IntExp %prec '='              { EQ $1 $4 }
+        | var '=''=' IntExp %prec '='                 { EQ $1 $4 }
+        | IntExp '=''=' var %prec '='                 { EQ $1 $4 }
+        | IntExp '<' IntExp                           { LT $1 $3 }
+        | IntExp '>' IntExp                           { GT $1 $3 }
+        | IntExp '<' obj                              { GT $1 Obj }
+        | obj '<' IntExp                              { GT Obj $3 }
+        | StringExp '=''=' StringExp %prec '='        { EQ $1 $4 }
+        | StringExp '=''=' subj %prec '='             { EQ $1 Subj }
+        | subj '=''=' StringExp %prec '='             { EQ Subj $4 }
+        | StringExp '=''=' pred %prec '='             { EQ $1 Pred }
+        | pred '=''=' StringExp %prec '='             { EQ Pred $4 }
+        | StringExp '=''=' obj  %prec '='             { EQ $1 Obj }
+        | obj '=''=' StringExp  %prec '='             { EQ Obj $4 }
+        | '(' BoolExp ')'                             { $2 }
+        | true                                        { QTrue }
+        | false                                       { QFalse }
 
 -- String Expression
-StringExp : String                    { QString $1 }
-          | var                       { Var $1 }
+StringExp : String                                    { QString $1 }
+          | var                                       { Var $1 }
 
 -- String Expression including the wildcard any (_)
-StringExp1 : StringExp                { $1 }
-           | '_'                      { Any }
+StringExp1 : StringExp                                { $1 }
+           | '_'                                      { Any }
 
 -- Types of nodes: Subject (subj), Predicate (pred), Object (obj)
-Node : subj                           { Subj } 
-     | pred                           { Pred } 
-     | obj                            { Obj }
+Node : subj                                           { Subj } 
+     | pred                                           { Pred } 
+     | obj                                            { Obj }
 
 
 { 
