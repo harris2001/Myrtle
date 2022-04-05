@@ -48,50 +48,68 @@ import LangTokens
 %left '^'
 %left NEG 
 %% 
-Query : Query1                                         { Query $1 Empty }
-      | Query1 where CreateVar                         { Query $1 $3 }
 
+-- A query has the following syntax:
+-- fun1 "input.ttl" where var = ...
+-- or
+-- fun1 "input.ttl" | fun2 | fun3 where var = ...
+Query : Query1                                         { Query $1 Empty }
+      | Query1 where CreateVars                         { Query $1 $3 }
+
+-- This is a separate rule because the input file is only put at the beginning
 Query1 : Func StringExp                                { FuncStackB $1 }
        | Func StringExp '|' Query2                     { FuncStackB $3 $1 }
 
+-- The following functions don't requrie an input file
+-- (unless the function is used to handle multiple files) 
 Query2 : Func                                          { FuncStackB $1 }              
        | Func '|' Query2                               { FuncStack $3 $1 }
+
+-- Create variables
+-- Extra rule used to remove shift/reduce conflict
+CreateVars : CreateVar CreateVars                      { VarEnv $1 $2 }
+           | CreateVar                                 { UVarEnv $1 }
 
 CreateVar : var '=' IntExp                             { IntVar $1 $3 }
           | var '=' StringExp                          { StringVar $1 $3 }
           | var '=' BoolExp                            { BoolVar $1 $3 }
           | var '=' IntOp                              { IntOpVar $1 $3 }
-          | CreateVar CreateVar                        { VarEnv $1 $2 }
 
+-- Functions that return RDF Graphs are listed here
 Func : filter '('FilterEl',' FilterEl',' Literal')'    { Filter $3 $5 $7 }
      | map '('Cond')'                                  { Map $3 }
      | union SList                                     { Union $2 }
      | join JoinOption '('Node',' Node')' SList        { Join $2 $4 $6 $8 }
 
+-- The parameters allowed in the filter function
 FilterEl : '_'                        { Any }
          | List                       { $1 }
 
-
+-- The options of a join
 JoinOption : '-r' '-l'                { BidirectJoin }
            | '-l' '-r'                { BidirectJoin }
            | '-l'                     { LeftJoin }
            | '-r'                     { RightJoin }
 
+-- List of strings
 SList : '[' SListElem ']'             { $2 }
       | StringExp1                    { $1 }
 
 SListElem : StringExp1                { SListEl $1 }
           | StringExp1 ',' SListElem  { SListEls $1 $3 }            
 
+-- List of any type. Note that the list can hold multiple types.
 List : '[' ListElem ']'               { $2 }
      | Literal1                       { $1 }
 
 ListElem : Literal1                   { ListEl $1 }
          | Literal1 ',' ListElem      { ListEls $1 $3 }
 
+-- Conditions are used for the map function
 Cond : Action                         { $1 }
      | '('BoolExp')''?' Cond':'Cond   { If $2 $5 $7 }
 
+-- Actions are executed when conditions are satisfied
 Action : subj '=' StringExp           { AssignSubj $3 }
        | pred '=' StringExp           { AssignPred $3 }
        | obj '=' StringExp            { AssignObjStr $3 }
@@ -99,13 +117,16 @@ Action : subj '=' StringExp           { AssignSubj $3 }
        | obj '=' BoolExp              { AssignObjBool $3 }
        | obj '=' IntOp                { AssignObjOp $3 }
 
+-- Literal includes strings, integers, booleans, and the wildcard any (_)
 Literal : Literal1                    { $1 }
         | '_'                         { Any }
 
+-- Literal1 only includes strings, integers and booleans
 Literal1 : IntExp                     { $1 }
          | BoolExp                    { $1 }
          | StringExp                  { $1 }
 
+-- Integer Expression
 IntExp : IntExp '+' IntExp            { Plus $1 $3 } 
        | IntExp '-' IntExp            { Minus $1 $3 } 
        | IntExp '*' IntExp            { Times $1 $3 } 
@@ -116,6 +137,7 @@ IntExp : IntExp '+' IntExp            { Plus $1 $3 }
        | int                          { QInt $1 } 
        | var                          { Var $1 }
 
+-- Integer Operation on an Object
 IntOp : IntOp '+' IntOp               { ObPlus $1 $3 }
       | IntExp '+' IntOp              { ObPlus $1 $3 }
       | IntOp '+' IntExp              { ObPlus $1 $3 }
@@ -135,6 +157,7 @@ IntOp : IntOp '+' IntOp               { ObPlus $1 $3 }
       | '-' IntOp %prec NEG           { Negate $2 }
       | obj                           { $1 }
 
+-- Boolean Expression
 BoolExp : BoolExp and BoolExp         { And $1 $3 }
         | BoolExp or BoolExp          { Or $1 $3 }
         | IntExp '=''=' IntExp        { EQ $1 $4 }
@@ -154,12 +177,15 @@ BoolExp : BoolExp and BoolExp         { And $1 $3 }
         | false                       { QFalse }
         | var                         { Var $1 }
 
+-- String Expression
 StringExp : String                    { QString $1 }
           | var                       { Var $1 }
 
+-- String Expression including the wildcard any (_)
 StringExp1 : StringExp                { $1 }
            | '_'                      { Any }
 
+-- Types of nodes: Subject (subj), Predicate (pred), Object (obj)
 Node : subj                           { Subj } 
      | pred                           { Pred } 
      | obj                            { Obj }
