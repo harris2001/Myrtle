@@ -22,6 +22,7 @@ $white+       ;
   "-r"           { tok (\p s -> TokenRJoin p) }
   \<             { tok (\p s -> TokenLT p) }
   \>             { tok (\p s -> TokenGT p) }
+  "=="           { tok (\p s -> TokenDEQ p) }
   =              { tok (\p s -> TokenEQ p) }
   \+             { tok (\p s -> TokenPlus p) }
   \-             { tok (\p s -> TokenMinus p) }
@@ -68,6 +69,7 @@ data LangToken =
   TokenRJoin AlexPosn            |
   TokenLT AlexPosn               |
   TokenGT AlexPosn               |
+  TokenDEQ AlexPosn              |
   TokenEQ AlexPosn               |
   TokenPlus AlexPosn             |
   TokenMinus AlexPosn            |
@@ -105,6 +107,7 @@ tokenPosn (TokenLJoin  (AlexPn a l c)) = show(l) ++ ":" ++ show(c)
 tokenPosn (TokenRJoin  (AlexPn a l c)) = show(l) ++ ":" ++ show(c)
 tokenPosn (TokenLT  (AlexPn a l c)) = show(l) ++ ":" ++ show(c)
 tokenPosn (TokenGT  (AlexPn a l c)) = show(l) ++ ":" ++ show(c)
+tokenPosn (TokenDEQ  (AlexPn a l c)) = show(l) ++ ":" ++ show(c)
 tokenPosn (TokenEQ  (AlexPn a l c)) = show(l) ++ ":" ++ show(c)
 tokenPosn (TokenPlus  (AlexPn a l c)) = show(l) ++ ":" ++ show(c)
 tokenPosn (TokenMinus (AlexPn a l c)) = show(l) ++ ":" ++ show(c)

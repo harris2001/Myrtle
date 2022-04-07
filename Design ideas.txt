@@ -1,0 +1,64 @@
+PROBLEM #1:
+union ["foo.ttl", "bar.ttl"]
+
+-------------------------------------------------------------------------------------------------------------
+
+PROBLEM #2:
+get(_, "http://www.cw.org/#problem2", true) "input.ttl" <- true is a syntactic sugar, arguments are effectively lists
+					or
+filter (_, predicate, object > 5) "input.ttl" where predicate = "http://www.cw.org/#problem2"
+filter (testA, _, > 5)
+
+-------------------------------------------------------------------------------------------------------------
+
+PROBLEM #3:
+get(_, ["http://www.cw.org/problem3/#predicate1", "http://www.cw.org/problem3/#predicate2", "http://www.cw.org/problem3/#predicate3"], _) "output.ttl"
+					                                   or
+get(_, predicates, _) "output.ttl"
+    where predicates = ["http://www.cw.org/problem3/#predicate1", "http://www.cw.org/problem3/#predicate2",
+                        "http://www.cw.org/problem3/#predicate3"]
+
+-------------------------------------------------------------------------------------------------------------
+
+PROBLEM #4:
+join -l -r (object, subject) ["foo.ttl", "bar.ttl", "turtle.ttl", "shell.ttl"]
+<foo> <_> <bar> .
+
+<bar> <_> <foo> .
+
+foo bar -> inter
+inter turtle -> inter1
+inter1 shell 
+
+-------------------------------------------------------------------------------------------------------------
+
+PROBLEM #5:
+map (object < 99 and object > 1)? true : false "input.ttl"
+map (length(object) > 3)? object = object + 1 : object = 0
+
+------------------------------------------------------------------------------------------------------------
+
+| <- piping
+> "output"
+rem (a,b,(obj > 99)) "input.ttl"
+avg "input.ttl"
+unique "input.ttl"
+replace (x,y,"a") (x,y,"b") "input.ttl"
+count "input.ttl"
+first "input.ttl"
+last "input.ttl"
+head 10 "input.ttl"
+tail 10 "input.ttl"
+max "input.ttl"
+min "input.ttl"
+sum "input.ttl"
+product "input.ttl"
+uppercase "ïnput.ttl"
+lowercase "input.ttl"
+sortBy object inc "input.ttl"
+length(String)
+startsWith(String)
+
+func
+
+unique "turtle.ttl" | map (condition) 

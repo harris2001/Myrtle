@@ -18,6 +18,7 @@ import LangTokens
   '-r'           { TokenRJoin _ }
   '<'            { TokenLT _ }
   '>'            { TokenGT _ }
+  deq            { TokenDEQ _ }
   '='            { TokenEQ _ }
   '+'            { TokenPlus _ }
   '-'            { TokenMinus _ }
@@ -184,20 +185,20 @@ BoolExp : BoolExp and BoolExp %prec and               { And $1 $3 }
         | BoolExp or BoolExp %prec or                 { Or $1 $3 }
         | var or BoolExp %prec or                     { Or $1 $3 }
         | BoolExp or var %prec or                     { Or $1 $3 }
-        | IntExp '=''=' IntExp %prec '='              { EQ $1 $4 }
-        | var '=''=' IntExp %prec '='                 { EQ $1 $4 }
-        | IntExp '=''=' var %prec '='                 { EQ $1 $4 }
+        | IntExp deq IntExp %prec '='                 { EQ $1 $3 }
+        | var deq IntExp %prec '='                    { EQ $1 $3 }
+        | IntExp deq var %prec '='                    { EQ $1 $3 }
         | IntExp '<' IntExp                           { LT $1 $3 }
         | IntExp '>' IntExp                           { GT $1 $3 }
         | IntExp '<' obj                              { GT $1 Obj }
         | obj '<' IntExp                              { GT Obj $3 }
-        | StringExp '=''=' StringExp %prec '='        { EQ $1 $4 }
-        | StringExp '=''=' subj %prec '='             { EQ $1 Subj }
-        | subj '=''=' StringExp %prec '='             { EQ Subj $4 }
-        | StringExp '=''=' pred %prec '='             { EQ $1 Pred }
-        | pred '=''=' StringExp %prec '='             { EQ Pred $4 }
-        | StringExp '=''=' obj  %prec '='             { EQ $1 Obj }
-        | obj '=''=' StringExp  %prec '='             { EQ Obj $4 }
+        | StringExp deq StringExp %prec '='           { EQ $1 $3 }
+        | StringExp deq subj %prec '='                { EQ $1 Subj }
+        | subj deq StringExp %prec '='                { EQ Subj $3 }
+        | StringExp deq pred %prec '='                { EQ $1 Pred }
+        | pred deq StringExp %prec '='                { EQ Pred $3 }
+        | StringExp deq obj  %prec '='                { EQ $1 Obj }
+        | obj deq StringExp  %prec '='                { EQ Obj $3 }
         | '(' BoolExp ')'                             { $2 }
         | true                                        { QTrue }
         | false                                       { QFalse }
