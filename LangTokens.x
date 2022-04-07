@@ -22,8 +22,8 @@ $white+       ;
   "-r"           { tok (\p s -> TokenRJoin p) }
   \<             { tok (\p s -> TokenLT p) }
   \>             { tok (\p s -> TokenGT p) }
-  "=="           { tok (\p s -> TokenDEQ p) }
-  =              { tok (\p s -> TokenEQ p) }
+  "=="           { tok (\p s -> TokenEQ p) }
+  "="            { tok (\p s -> TokenAS p) }
   \+             { tok (\p s -> TokenPlus p) }
   \-             { tok (\p s -> TokenMinus p) }
   \*             { tok (\p s -> TokenTimes p) }
@@ -71,6 +71,7 @@ data LangToken =
   TokenGT AlexPosn               |
   TokenDEQ AlexPosn              |
   TokenEQ AlexPosn               |
+  TokenAS AlexPosn               |
   TokenPlus AlexPosn             |
   TokenMinus AlexPosn            |
   TokenTimes AlexPosn            |

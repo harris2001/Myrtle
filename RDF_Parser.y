@@ -161,6 +161,6 @@ main = do
         let tokens = alexScanTokens contents
         -- print(tokens)
         let expression = parseCalc tokens
-        -- print(expression)
+        print(expression)
         print(head(getExp (modify expression (Base(FinalUrl "")) []) 1))
 } 

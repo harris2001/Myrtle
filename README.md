@@ -21,3 +21,16 @@ $ happy RDF_Parser.y
 ```
 $ runghc RDF_Parser.hs
 ```
+
+## Language Specification:
+### Functions
+```
+FUNCTIONS = map (CONDITION) | 
+            union SLIST |
+            join {-r | -l | -l -r | -r -l } (NODE,NODE) SLIST
+
+NODE = subj | pred | obj 
+
+SLIST = [FILE,FILE,FILE,...]
+
+CONDITION

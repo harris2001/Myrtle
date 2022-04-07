@@ -28,3 +28,4 @@ p:subjectE r:predicateE q:objectE .
 <#problem2> <testPredB> true .
 <#problemNot2> <testPredB> true .
 <#problemNot2> <testPredB> false .
+
