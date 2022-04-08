@@ -56,7 +56,7 @@ import LangTokens
 -- fun1 "input.ttl" where var = ...
 -- or
 -- fun1 "input.ttl" | fun2 | fun3 where var = ...
-Query : QueryWithFile                                       { SimpleQuery $1 }
+Query : QueryWithFile                                       { NewQuery $1 }
      --  | QueryWithFile where CreateVars                      { WhereQuery $1 $3 }
 
 -- DONE
@@ -67,7 +67,7 @@ QueryWithFile : Func StringExp                              { FuncStack $1 $2}
 -- The following functions don't requrie an input file
 -- (unless the function is used to handle multiple files) 
 SimpleQuery : Func                                          { FuncStackB $1 }              
-            | SimpleQuery '|' SimpleQuery                   { FuncStackBSeq $1 $3 }
+            | Func '|' SimpleQuery                          { FuncStackBSeq $1 $3 }
 
 --DONE
 -- Create variables
@@ -108,11 +108,11 @@ BoolExp : true                                              { QTrue }
 -- DONE
 -- List of strings
 SList : '[' SListElem ']'                                   { StrList $2 }
-      | StringExp                                           { StrListSingle $1 }
+     --  | StringExp                                           { StrListSingle $1 }
 
 -- DONE
 SListElem : StringExp                                       { SListEl $1 }
-          | SListElem ',' SListElem                         { SListSeq $1 $3 }            
+          | StringExp ',' SListElem                         { SListSeq $1 $3 }            
 
 -- -- List of any type. Note that the list can hold multiple types.
 -- List : '[' ListElem ']'                                { $2 }
@@ -294,7 +294,7 @@ data BoolExp = QTrue | QFalse
 data SList = StrList SListElem | StrListSingle StringExp
      deriving Show
      
-data SListElem = SListEl StringExp | SListSeq SListElem SListElem
+data SListElem = SListEl StringExp | SListSeq StringExp SListElem
      deriving Show
      
 data Func = Union SList
@@ -306,13 +306,13 @@ data CreateVar = IntVar String IntExp | BoolVar String BoolExp | StringVar Strin
 data CreateVars = UVarEnv CreateVar | VarEnv CreateVars CreateVars
      deriving Show
      
-data Query = SimpleQuery QueryWithFile 
+data Query = NewQuery QueryWithFile 
      deriving Show
      
 data QueryWithFile = FuncStack Func StringExp | FuncStackSeq Func StringExp SimpleQuery
      deriving Show
      
-data SimpleQuery = FuncStackB Func | FuncStackBSeq SimpleQuery SimpleQuery
+data SimpleQuery = FuncStackB Func | FuncStackBSeq Func SimpleQuery
      deriving Show
      
 main :: IO()
