@@ -211,6 +211,7 @@ StringExp : String                                    { QString $1 }
 StringExp1 : StringExp                                { $1 }
            | '_'                                      { Any }
 
+-- DONE --
 -- Types of nodes: Subject (subj), Predicate (pred), Object (obj)
 Node : subj                                           { Subj } 
      | pred                                           { Pred } 

@@ -1,1 +1,1 @@
-union ["foo.tll",'testing.tll'] "foo.tll"
+union ["foo.tll",'testing.tll'] "foo.tll" | join (pred,pred) ["foo.tll"]

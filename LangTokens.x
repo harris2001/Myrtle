@@ -44,6 +44,7 @@ $white+       ;
   where          { tok (\p s -> TokenWhere p) }
   and            { tok (\p s -> TokenAnd p) }
   or             { tok (\p s -> TokenOr p) }
+  "<"(http\:\/\/|https\:\/\/)[\. \/ \# $alpha $digit]*">"    { tok (\p s -> TokenUrl p s)}
   $alpha [$alpha $digit \_ \’]*   { \p s -> TokenVar p s }
   \" [$printable # \"]+ \" { tok (\p s -> TokenString p (removeQuot s)) }
   \' [$printable # \']+ \' { tok (\p s -> TokenString p (removeQuot s)) }
@@ -93,6 +94,7 @@ data LangToken =
   TokenWhere AlexPosn            |
   TokenAnd AlexPosn              |
   TokenOr AlexPosn               |
+  TokenUrl AlexPosn String       |
   TokenVar AlexPosn String       |
   TokenString AlexPosn String
     deriving (Eq,Show) 
@@ -130,6 +132,7 @@ tokenPosn (TokenUnion (AlexPn a l c)) = show(l) ++ ":" ++ show(c)
 tokenPosn (TokenJoin(AlexPn a l c)) = show(l) ++ ":" ++ show(c)
 tokenPosn (TokenWhere(AlexPn a l c)) = show(l) ++ ":" ++ show(c)
 tokenPosn (TokenAnd (AlexPn a l c)) = show(l) ++ ":" ++ show(c)
+tokenPosn (TokenUrl (AlexPn a l c) _ ) = show(l) ++ ":" ++ show(c)
 tokenPosn (TokenOr (AlexPn a l c)) = show(l) ++ ":" ++ show(c)
 tokenPosn (TokenVar (AlexPn a l c) _) = show(l) ++ ":" ++ show(c)
 tokenPosn (TokenString (AlexPn a l c) _) = show(l) ++ ":" ++ show(c)

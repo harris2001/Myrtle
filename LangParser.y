@@ -1,6 +1,8 @@
 { 
 module LangGrammar where 
 import LangTokens
+-- import RDF_Lexer
+-- import RDF_Parser
 }
 
 %name parseQuery
@@ -39,6 +41,7 @@ import LangTokens
   union          { TokenUnion _ }
   join           { TokenJoin _ }
   where          { TokenWhere _ }
+  url            { TokenUrl _ $$ }
   and            { TokenAnd _ }
   or             { TokenOr _ }
   var            { TokenVar _ $$ }
@@ -51,31 +54,32 @@ import LangTokens
 %left DEQ
 %% 
 
--- DONE
+-- DONE --
 -- A query has the following syntax:
 -- fun1 "input.ttl" where var = ...
 -- or
 -- fun1 "input.ttl" | fun2 | fun3 where var = ...
 Query : QueryWithFile                                       { NewQuery $1 }
-     --  | QueryWithFile where CreateVars                      { WhereQuery $1 $3 }
+      | QueryWithFile where CreateVars                      { WhereQuery $1 $3 }
 
--- DONE
+-- DONE --
 -- This is a separate rule because the input file is only put at the beginning
 QueryWithFile : Func StringExp                              { FuncStack $1 $2}
               | Func StringExp '|' SimpleQuery              { FuncStackSeq $1 $2 $4}
 
+-- DONE --
 -- The following functions don't requrie an input file
 -- (unless the function is used to handle multiple files) 
 SimpleQuery : Func                                          { FuncStackB $1 }              
             | Func '|' SimpleQuery                          { FuncStackBSeq $1 $3 }
 
---DONE
+--DONE --
 -- Create variables
 -- Extra rule used to remove shift/reduce conflict
-CreateVars : CreateVars  CreateVars                         { VarEnv $1 $2 }
-           | CreateVar                                      { UVarEnv $1 }
+CreateVars : CreateVar                                      { UVarEnv $1 }
+           | CreateVar  CreateVars                          { VarEnv $1 $2 }
 
---DONE
+--DONE --
 CreateVar : var '=' IntExp                                  { IntVar $1 $3 }
           | var '=' StringExp                               { StringVar $1 $3 }
           | var '=' BoolExp                                 { BoolVar $1 $3 }
@@ -86,12 +90,13 @@ CreateVar : var '=' IntExp                                  { IntVar $1 $3 }
 -- Func : filter '('FilterEl',' FilterEl',' Literal')'    { Filter $3 $5 $7 }
 --      | map '('Cond')'                                  { Map $3 }
 Func : union SList                                          { Union $2 }
-     -- | join JoinOption '('Node',' Node')' SList        { Join $2 $4 $6 $8 }
+     | join '('Node',' Node')' SList                        { NormalJoin $3 $5 $7 }
+     | join JoinOption '('Node',' Node')' SList             { Join $2 $4 $6 $8 }
 
--- DONE
+-- DONE --
 IntExp : int                                                { QInt $1 }
 
--- DONE
+-- DONE --
 BoolExp : true                                              { QTrue }
         | false                                             { QFalse }
 
@@ -99,18 +104,19 @@ BoolExp : true                                              { QTrue }
 -- FilterEl : '_'                                         { Any }
 --          | List                                        { $1 }
 
--- -- The options of a join
--- JoinOption : '-r' '-l'                                 { BidirectJoin }
---            | '-l' '-r'                                 { BidirectJoin }
---            | '-l'                                      { LeftJoin }
---            | '-r'                                      { RightJoin }
+-- DONE --
+-- The options of a join
+JoinOption : '-r' '-l'                                 { BidirectJoin }
+           | '-l' '-r'                                 { BidirectJoin }
+           | '-l'                                      { LeftJoin }
+           | '-r'                                      { RightJoin }
 
--- DONE
+-- DONE --
 -- List of strings
 SList : '[' SListElem ']'                                   { StrList $2 }
-     --  | StringExp                                           { StrListSingle $1 }
+      | StringExp                                           { StrListSingle $1 }
 
--- DONE
+-- DONE --
 SListElem : StringExp                                       { SListEl $1 }
           | StringExp ',' SListElem                         { SListSeq $1 $3 }            
 
@@ -121,18 +127,19 @@ SListElem : StringExp                                       { SListEl $1 }
 -- ListElem : Literal1                                    { ListEl $1 }
 --          | Literal1 ',' ListElem                       { ListEls $1 $3 }
 
--- -- Conditions are used for the map function
+-- Conditions are used for the map function
 -- Cond : Action                                         { $1 }
 --      | '('BoolExp')''?' Cond':'Cond                   { If $2 $5 $7 }
 
--- -- Actions are executed when conditions are satisfied
--- Action : subj '=' StringExp                           { AssignSubj $3 }
---        | pred '=' StringExp                           { AssignPred $3 }
---        | obj '=' String                               { AssignObjStr $3 }
---        | obj '=' IntExp                               { AssignObjInt $3 }
---        | obj '=' BoolExp                              { AssignObjBool $3 }
---        | obj '=' IntOp                                { AssignObjOp $3 }
---        | obj '=' var                                  { AssignObjVar $3 }
+-- Actions are executed when conditions are satisfied
+-- Action : subj '=' Url                                 { AssignSubj $1 $3 }
+--        | pred '=' Url                                 { AssignPred $1 $3 }
+--        | obj '=' Url                                  { AssignObjUrl $1 $3 }
+--        | obj '=' StringExp                            { AssignObjStr $1 $3 }
+--        | obj '=' IntExp                               { AssignObjInt $1 $3 }
+--        | obj '=' BoolExp                              { AssignObjBool $1 $3 }
+     --   | obj '=' IntOp                                { AssignObjOp $3 }
+     --   | obj '=' var                                  { AssignObjVar $3 }
 
 -- -- Literal includes strings, integers, booleans, and the wildcard any (_)
 -- Literal : Literal1                                    { $1 }
@@ -227,12 +234,15 @@ StringExp : string                                    { QString $1 }
 StringExp1 : StringExp                                { SpecifiedStr $1 }
            | '_'                                      { Any }
 
--- DONE
+-- DONE --
 -- Types of nodes: Subject (subj), Predicate (pred), Object (obj)
 Node : subj                                           { Subj } 
      | pred                                           { Pred } 
      | obj                                            { Obj }
 
+-- DONE
+-- Creates a url data object
+Url : url                                             { NewUrl $1 }
 
 {
 parseError :: [LangToken] -> a
@@ -273,6 +283,8 @@ parseError ((TokenAnd (AlexPn _ l c)) : xs) = error (printing l c)
 parseError ((TokenOr (AlexPn _ l c))  : xs) = error (printing l c)
 parseError ((TokenVar (AlexPn _ l c) _ )  : xs) = error (printing l c)
 
+parseError [] = error "Missing output file"
+
 
 printing x y = "Issue in row: "++show x ++ ", column:" ++ show y
 
@@ -297,16 +309,13 @@ data SList = StrList SListElem | StrListSingle StringExp
 data SListElem = SListEl StringExp | SListSeq StringExp SListElem
      deriving Show
      
-data Func = Union SList
-     deriving Show
-     
 data CreateVar = IntVar String IntExp | BoolVar String BoolExp | StringVar String StringExp
      deriving Show
      
-data CreateVars = UVarEnv CreateVar | VarEnv CreateVars CreateVars
+data CreateVars = UVarEnv CreateVar | VarEnv CreateVar CreateVars
      deriving Show
      
-data Query = NewQuery QueryWithFile 
+data Query = NewQuery QueryWithFile | WhereQuery QueryWithFile CreateVars
      deriving Show
      
 data QueryWithFile = FuncStack Func StringExp | FuncStackSeq Func StringExp SimpleQuery
@@ -314,7 +323,18 @@ data QueryWithFile = FuncStack Func StringExp | FuncStackSeq Func StringExp Simp
      
 data SimpleQuery = FuncStackB Func | FuncStackBSeq Func SimpleQuery
      deriving Show
+
+data Func = Union SList | NormalJoin Node Node SList | Join JoinOption Node Node SList
+     deriving Show     
      
+-- data Action = AssignSubj Node Url | AssignPred Node Url | AssignObjUrl Node Url | AssignObjStr Node StringExp | AssignObjInt Node IntExp | AssignObjBool Node BoolExp
+
+data JoinOption = BidirectJoin | LeftJoin | RightJoin
+     deriving Show
+
+data Url = NewUrl String
+     deriving Show
+
 main :: IO()
 
 main = do 
