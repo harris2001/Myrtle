@@ -28,10 +28,9 @@ union ["foo.tll",'testing.tll'] "foo.tll"
 ```
 
 #### Step 4: 
-> Run parser with runghc command and provide the file where you have written your code at 
+> Run parser with runghc command and provide the file where you have written your code as an argument
 ```
-$ runghc LangParser.hs
-> script.q
+$ runghc LangParser.hs script.q
 ```
 
 
@@ -121,7 +120,7 @@ STR_EXP = \" [$printable # \"]+ \" |
 ```
 ### FUNCTIONS
 ```
-FUNCTION = map () | 
+FUNCTION = map (CONDITION) | 
            union SLIST |
-           join {-r | -                         ,NODE) SLIST
+           join {-r | -l | -l -r | -r -l } (NODE,NODE) SLIST
 ```

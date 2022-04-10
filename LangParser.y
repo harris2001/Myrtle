@@ -3,7 +3,7 @@ module LangGrammar where
 import LangTokens
 
 -- import RDF_Lexer
--- import RDF_Parser
+import RDF_Parser
 
 import System.Environment
 
