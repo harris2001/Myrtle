@@ -1,8 +1,12 @@
 { 
 module LangGrammar where 
 import LangTokens
+
 -- import RDF_Lexer
 -- import RDF_Parser
+
+import System.Environment
+
 }
 
 %name parseQuery
@@ -68,14 +72,12 @@ QueryWithFile : Func StringExp                              { FuncStack $1 $2}
               | Func StringExp '|' SimpleQuery              { FuncStackSeq $1 $2 $4}
 
 -- DONE --
--- The following functions don't requrie an input file
--- (unless the function is used to handle multiple files) 
+-- The following functions don't requrie an input file (unless the function is used to handle multiple files) 
 SimpleQuery : Func                                          { FuncStackB $1 }              
             | Func '|' SimpleQuery                          { FuncStackBSeq $1 $3 }
 
 -- DONE --
--- Create variables
--- Extra rule used to remove shift/reduce conflict
+-- Create variables - Extra rule used to remove shift/reduce conflict
 CreateVars : CreateVar                                      { UVarEnv $1 }
            | CreateVar  CreateVars                          { VarEnv $1 $2 }
 
@@ -85,33 +87,28 @@ CreateVar : var '=' IntExp                                  { IntVar $1 $3 }
           | var '=' BoolExp                                 { BoolVar $1 $3 }
 
 -- Functions that return RDF Graphs are listed here
--- Func : filter '('FilterEl',' FilterEl',' Literal')'    { Filter $3 $5 $7 }
-Func : map '('Cond')'                                       { Map $3 }
+Func : filter '(' FilterEl ',' FilterEl ',' Literal ')'     { Filter $3 $5 $7 }
+     | map '('Cond')'                                       { Map $3 }
      | union SList                                          { Union $2 }
      | join '('Node',' Node')' SList                        { NormalJoin $3 $5 $7 }
      | join JoinOption '('Node',' Node')' SList             { Join $2 $4 $6 $8 }
 
--- DONE --
--- All possible triplet formats (needed to be specified like that to avoid reduce/reduce conflicts)
--- Triplet: '(' Subject ',' Predicate',' Object ')'            { All $2 $4 $6 }
---        | '(' Subject ',' Predicate','   '_'  ')'            { AnyObj $2 $4 }
---        | '(' Subject ','   '_'    ',' Object ')'            { AnyPred $2 $6 }
---        | '(' Subject ','   '_'    ','   '_'  ')'            { OnlySbj $2 }
---        | '('   '_'   ',' Predicate',' Object ')'            { AnySbj $4 $6 }
---        | '('   '_'   ',' Predicate','   '_'  ')'            { OnlyPred $4 }
---        | '('   '_'   ','   '_'    ',' Object ')'            { OnlyObj $6 }
---        | '('   '_'   ','   '_'    ','   '_'  ')'            { AnyTriplet }
-
+-- DONE
 -- The parameters allowed in the filter function
--- FilterEl : '_'                                         { Any }
---          | List                                        { $1 }
+FilterEl : '_'                                              { Any }
+         | '[' UrlList ']'                                  { FilteredList $2 }
+
+-- DONE
+-- List of Url requested
+UrlList : Url                                               { SimpleUrl $1 }
+        | Url ',' UrlList                                   { UrlSeq $1 $3}
 
 -- DONE --
 -- The options of a join
-JoinOption : '-r' '-l'                                 { BidirectJoin }
-           | '-l' '-r'                                 { BidirectJoin }
-           | '-l'                                      { LeftJoin }
-           | '-r'                                      { RightJoin }
+JoinOption : '-r' '-l'                                      { BidirectJoin }
+           | '-l' '-r'                                      { BidirectJoin }
+           | '-l'                                           { LeftJoin }
+           | '-r'                                           { RightJoin }
 
 -- DONE --
 -- List of strings
@@ -120,38 +117,28 @@ SList : '[' SListElem ']'                                   { StrList $2 }
 
 -- DONE --
 SListElem : StringExp                                       { SListEl $1 }
-          | StringExp ',' SListElem                         { SListSeq $1 $3 }            
-
--- -- List of any type. Note that the list can hold multiple types.
--- List : '[' ListElem ']'                                { $2 }
---      | Literal1                                        { $1 }
-
--- ListElem : Literal1                                    { ListEl $1 }
---          | Literal1 ',' ListElem                       { ListEls $1 $3 }
+          | StringExp ',' SListElem                         { SListSeq $1 $3 }     
 
 -- Done
 -- Conditions are used for the map function
-Cond : Action                                         { Always $1 }
-     | Action ',' Action                              { ActionSeq $1 $3 }
-     | '('BoolExp')''?' Cond':'Cond                   { If $2 $5 $7 }
+Cond : Action                                                    { Always $1 }
+     | Action ',' Action                                         { ActionSeq $1 $3 }
+     | '('BoolExp')''?' Cond':'Cond                              { If $2 $5 $7 }
 
 --DONE
 -- Actions are executed when conditions are satisfied
-Action : Subject '=' Url                                 { AssignSubj $1 $3 }
-       | Predicate '=' Url                               { AssignPred $1 $3 }
-       | Object '=' Url                                  { AssignObjUrl $1 $3 }
-       | Object '=' StringExp                            { AssignObjStr $1 $3 }
-       | Object '=' IntExp                               { AssignObjInt $1 $3 }
-       | Object '=' BoolExp                              { AssignObjBool $1 $3 }
+Action : Subject '=' Url                                    { AssignSubj $1 $3 }
+       | Predicate '=' Url                                  { AssignPred $1 $3 }
+       | Object '=' Url                                     { AssignObjUrl $1 $3 }
+       | Object '=' StringExp                               { AssignObjStr $1 $3 }
+       | Object '=' IntExp                                  { AssignObjInt $1 $3 }
+       | Object '=' BoolExp                                 { AssignObjBool $1 $3 }
 
--- -- Literal includes strings, integers, booleans, and the wildcard any (_)
--- Literal : Literal1                                    { $1 }
---         | '_'                                         { Any }
-
--- -- Literal1 only includes strings, integers and booleans
--- Literal1 : IntExp                                     { $1 }
---          | BoolExp                                    { $1 }
---          | StringExp                                  { $1 }
+-- Literal includes strings, integers, booleans, and the wildcard any (_)
+Literal : '_'                                               { AnyLit }
+        | IntExp                                            { IntLit $1 }
+        | BoolExp                                           { BoolLit $1 }
+        | StringExp                                         { StrLit $1 }
 
 -- DONE --
 -- Integer Expression
@@ -192,7 +179,12 @@ IntExp : IntExp '+' IntExp                   { PlusII $1 $3 }
 -- DONE --
 -- Boolean Expression
 BoolExp : BoolExp and BoolExp                         { And $1 $3 }
+        | BoolExp and Object                          { AndIO $1 $3 }
+        | Object and BoolExp                          { AndOI $1 $3 }
+        
         | BoolExp or BoolExp                          { Or $1 $3 }
+        | BoolExp or Object                           { OrIO $1 $3 }
+        | Object or BoolExp                           { OrOI $1 $3 }
 
         | IntExp '>' IntExp                           { GTII $1 $3 }
         | IntExp '>' Object                           { GTIO $1 $3 }
@@ -202,30 +194,40 @@ BoolExp : BoolExp and BoolExp                         { And $1 $3 }
         | IntExp '<' Object                           { LTIO $1 $3 }
         | Object '<' IntExp                           { LTOI $1 $3 }
 
-        | StringExp deq StringExp                     { EQSS $1 $3 }
         | IntExp deq IntExp                           { EQII $1 $3 }
-        | Node deq StringExp                          { EQNS $1 $3 }
-        | StringExp deq Node                          { EQSN $1 $3 }
-        | Node deq Url                                { EQNU $1 $3 }
-        | Url deq Node                                { EQUN $1 $3 }
+        | BoolExp deq BoolExp                         { EQBB $1 $3 }
+        | StringExp deq StringExp                     { EQSS $1 $3 }
+        | Url deq Url                                 { EQUU $1 $3 }
+
+        | Object deq IntExp                           { EQOI $1 $3 }
+        | IntExp deq Object                           { EQIO $1 $3 }
+        
+        | Object deq StringExp                        { EQOS $1 $3 }
+        | StringExp deq Object                        { EQSO $1 $3 }
+
+        | Object deq BoolExp                          { EQOB $1 $3 }
+        | BoolExp deq Object                          { EQBO $1 $3 }
+
+        | Subject deq Url                             { EQSU $1 $3 }
+        | Url deq Subject                             { EQUS $1 $3 }
+        | Predicate deq Url                           { EQPU $1 $3 } 
+        | Url deq Predicate                           { EQUP $1 $3 } 
+        | Object deq Url                              { EQOU $1 $3 } 
+        | Url deq Object                              { EQUO $1 $3 } 
 
         | '(' BoolExp ')'                             { $2 }
         
         | true                                        { QTrue }
         | false                                       { QFalse }
+     -- TODO: ADD VAR IN BOOL EXP
      --    | var                                         { BoolVariable }
      --    | Object                                      { BoolObj }
 
 -- DONE --
 -- String Expression
 StringExp : string                                    { QString $1 }
-
+          -- TODO: ADD VAR IN STRING EXP
           -- | var                                       { StrVariable }
-
--- DONE --
--- String Expression including the wildcard any (_)
--- StringExp1 : StringExp                                { SpecifiedStr $1 }
---            | '_'                                      { Any }
 
 -- DONE --
 -- Types of nodes: Subject (subj), Predicate (pred), Object (obj)
@@ -304,16 +306,8 @@ data Object =  Obj
 
 data Node = S Subject | P Predicate | O Object
      deriving Show
-     
--- data Triplet = All Subject Predicate Object 
---              | AnyObj Subject Predicate |AnyPred Subject Object | AnySbj Predicate Object 
---              | OnlySbj Subject Predicate Object |OnlyPred Subject Predicate Object |OnlyObj Subject Predicate Object 
---              | AnyTriplet Subject Predicate Object 
 
 data StringExp = QString String
-     deriving Show
-     
-data StringExp1 = SpecifiedStr StringExp | Any
      deriving Show
      
 -- TODO: add IntVariable & IntObj to doc
@@ -324,17 +318,22 @@ data IntExp = PlusII IntExp IntExp | PlusOI Object IntExp | PlusIO IntExp Object
               ExpoII IntExp IntExp | ExpoOI Object IntExp | ExpoIO IntExp Object | ExpoOO Object Object |
               QInt Int |
               NegateI IntExp | NegateO Object |
-              IntVariable String -- |
-          --     IntObj Object
+              IntVariable String
      deriving Show
      
 -- TODO change Nodes in doc
-data BoolExp = And BoolExp BoolExp| Or BoolExp BoolExp
+data BoolExp = And BoolExp BoolExp | AndIO BoolExp Object | AndOI Object BoolExp
+             | Or BoolExp BoolExp | OrIO BoolExp Object | OrOI Object BoolExp
              | GTII IntExp IntExp | GTIO IntExp Object | GTOI Object IntExp 
              | LTII IntExp IntExp | LTIO IntExp Object | LTOI Object IntExp
-             | EQSS StringExp StringExp | EQII IntExp IntExp | EQNS Node StringExp | EQSN StringExp Node
-             | EQNU Node Url | EQUN Url Node
-             | BoolVariable BoolExp |BoolObj Object
+             | EQII IntExp IntExp | EQBB BoolExp BoolExp | EQSS StringExp StringExp | EQUU Url Url
+             | EQOS Object StringExp | EQSO StringExp Object
+             | EQOI Object IntExp | EQIO IntExp Object
+             | EQOB Object BoolExp | EQBO BoolExp Object
+             | EQSU Subject Url | EQUS Url Subject
+             | EQPU Predicate Url | EQUP Url Predicate
+             | EQOU Object Url | EQUO Url Object
+             | BoolVariable BoolExp | BoolObj Object
              | QTrue | QFalse
      deriving Show
      
@@ -359,9 +358,6 @@ data QueryWithFile = FuncStack Func StringExp | FuncStackSeq Func StringExp Simp
 data SimpleQuery = FuncStackB Func | FuncStackBSeq Func SimpleQuery
      deriving Show
 
-data Func = Map Cond | Union SList | NormalJoin Node Node SList | Join JoinOption Node Node SList
-     deriving Show     
-
 data Cond = Always Action | ActionSeq Action Action | If BoolExp Cond Cond
      deriving Show
 
@@ -375,12 +371,27 @@ data JoinOption = BidirectJoin | LeftJoin | RightJoin
 data Url = NewUrl String
      deriving Show
 
+data UrlList = SimpleUrl Url | UrlSeq Url UrlList
+     deriving Show
+
+data FilterEl = Any | FilteredList UrlList
+     deriving Show
+
+data Literal = IntLit IntExp | BoolLit BoolExp | StrLit StringExp | AnyLit
+     deriving Show
+
+data Func = Map Cond | Union SList | NormalJoin Node Node SList | Join JoinOption Node Node SList |
+            Filter FilterEl FilterEl Literal
+     deriving Show     
+
+
 main :: IO()
 
 main = do 
-        contents <- readFile "script.q"
+        file <- getArgs
+        contents <- readFile (head file)
         let tokens = alexScanTokens contents
-        print(tokens)
+     --    print(tokens)
         let expression = parseQuery tokens
         print(expression)
 } 

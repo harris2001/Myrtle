@@ -77,50 +77,51 @@ ACTION = SUBJECT '=' URL |
 
 URL = "<"(http\:\/\/|https\:\/\/)[\. \/ \# $alpha $digit]*">"
 
+-- VAR can only hold integer values
 VAR = $alpha+
 
 INT = $digit+
 
-INT_EXP = INT_EXP '+' INT_EXP |
-          INT_EXP '-' INT_EXP |
-          INT_EXP '*' INT_EXP |
-          INT_EXP '/' INT_EXP |
-          INT_EXP '*' INT_EXP |
-          '-' INT_EXP |
-          ( INT_EXP ) |
-          INT |
-          VAR 
+INT_EXP : (INT_EXP | OBJECT) '+' (INT_EXP | OBJECT)          
+        | (INT_EXP | OBJECT) '-' (INT_EXP | OBJECT)          
+        | (INT_EXP | OBJECT) '*' (INT_EXP | OBJECT)          
+        | (INT_EXP | OBJECT) '/' (INT_EXP | OBJECT)           
+        | (INT_EXP | OBJECT) '^' (INT_EXP | OBJECT)
+        | '(' INT_EXP ')'                                
+        | '-' (INT_EXP|OBJECT)
+        | INT           
+        | VAR
+
+BOOL_EXP : (BOOL_EXP | OBJECT) and (BOOL_EXP | OBJECT)
+         | (BOOL_EXP | OBJECT) or (BOOL_EXP | OBJECT)
+         | (INT_EXP | OBJECT) '>' (INT_EXP | OBJECT)
+         | (INT_EXP | OBJECT) '<' (INT_EXP | OBJECT)
+         
+         | INT_EXP deq INT_EXP
+         | BOOL_EXP deq BOOL_EXP
+         | STR_EXP deq STR_EXP
+         | URL deq URL
+
+         | OBJECT "==" (INT_EXP | BOOL_EXP | STR_EXP)                            
+         | (INT_EXP | BOOL_EXP | STR_EXP) "==" OBJECT
+
+         | NODE "==" URL
+         | URL "==" NODE
+ 
+         | '(' BOOL_EXP ')'
+         
+         | true
+         | false
+
 
 STR_EXP = \" [$printable # \"]+ \" |
           \' [$printable # \']+ \'
 
--- STR_EXP1 = STR_EXP | '_'
-
-BOOL_EXP = BOOL_EXP and BOOL_EXP |
-           BOOL_EXP or BOOL_EXP |
-           INT_EXP '>' INT_EXP |
-           INT_EXP '>' OBJECT |
-           OBJECT '>' INT_EXP |
-           INT_EXP '<' INT_EXP |
-           INT_EXP '<' OBJECT |
-           OBJECT '<' INT_EXP |
-           STR_EXP deq STR_EXP |
-           INT_EXP deq INT_EXP |
-           Node deq STR_EXP |
-           STR_EXP deq Node |
-           ( BOOL_EXP ) |
-           true | false
-
-TRIPLET = (MAYBE_SUBJ,MAYBE_PRED,MAYBE_OBJ)
-
-MAYBE_SUBJ = SUBJECT | '_'
-MAYBE_PRED = PREDICATE | '_'
-MAYBE_OBJ = OBJECT | '_'
 
 ```
 ### FUNCTIONS
 ```
 FUNCTION = map () | 
            union SLIST |
-           join {-r | -l | -l -r | -r -l } (NODE,NODE) SLIST
+           join {-r | -                         ,NODE) SLIST
 ```
