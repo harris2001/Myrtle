@@ -57,33 +57,70 @@ VAR_ASSIGNMENT = var '=' INT_EXP |
                  var '=' STR_EXP |
                  var '=' BOOL_EXP
 
-NODE = subj | pred | obj 
+NODE = SUBJECT | PREDICATE | OBJECT 
+
+SUBJECT = sbj
+PREDICATE = pred
+OBJECT = obj
 
 SLIST = [FILE,FILE,FILE,...]
 
 CONDITION = ACTION |
             BOOL_EXP ? CONDITION : CONDITION
 
-ACTION = subj '=' URL |
-         pred '=' URL |
-         obj '=' URL  |
-         obj '=' STR_EXP |
-         obj '=' INT_EXP |
-         obj '=' BOOL_EXP
+ACTION = SUBJECT '=' URL |
+         PREDICATE '=' URL |
+         OBJECT '=' URL  |
+         OBJECT '=' STR_EXP |
+         OBJECT '=' INT_EXP |
+         OBJECT '=' BOOL_EXP
 
 URL = "<"(http\:\/\/|https\:\/\/)[\. \/ \# $alpha $digit]*">"
+
+VAR = $alpha+
+
+INT = $digit+
+
+INT_EXP = INT_EXP '+' INT_EXP |
+          INT_EXP '-' INT_EXP |
+          INT_EXP '*' INT_EXP |
+          INT_EXP '/' INT_EXP |
+          INT_EXP '*' INT_EXP |
+          '-' INT_EXP |
+          ( INT_EXP ) |
+          INT |
+          VAR 
 
 STR_EXP = \" [$printable # \"]+ \" |
           \' [$printable # \']+ \'
 
-INT_EXP = $digit+
+-- STR_EXP1 = STR_EXP | '_'
 
-BOOL_EXP = true | false
+BOOL_EXP = BOOL_EXP and BOOL_EXP |
+           BOOL_EXP or BOOL_EXP |
+           INT_EXP '>' INT_EXP |
+           INT_EXP '>' OBJECT |
+           OBJECT '>' INT_EXP |
+           INT_EXP '<' INT_EXP |
+           INT_EXP '<' OBJECT |
+           OBJECT '<' INT_EXP |
+           STR_EXP deq STR_EXP |
+           INT_EXP deq INT_EXP |
+           Node deq STR_EXP |
+           STR_EXP deq Node |
+           ( BOOL_EXP ) |
+           true | false
+
+TRIPLET = (MAYBE_SUBJ,MAYBE_PRED,MAYBE_OBJ)
+
+MAYBE_SUBJ = SUBJECT | '_'
+MAYBE_PRED = PREDICATE | '_'
+MAYBE_OBJ = OBJECT | '_'
 
 ```
 ### FUNCTIONS
 ```
-FUNCTION = map (CONDITION) | 
+FUNCTION = map () | 
            union SLIST |
            join {-r | -l | -l -r | -r -l } (NODE,NODE) SLIST
 ```

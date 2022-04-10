@@ -20,7 +20,7 @@ import LangTokens
   '-r'           { TokenRJoin _ }
   '<'            { TokenLT _ }
   '>'            { TokenGT _ }
-  DEQ            { TokenDEQ _ }
+  deq            { TokenDEQ _ }
   '='            { TokenEQ _ }
   '+'            { TokenPlus _ }
   '-'            { TokenMinus _ }
@@ -51,7 +51,7 @@ import LangTokens
 %left '*' '/' and
 %left '^'
 %left NEG 
-%left DEQ
+%left deq
 %% 
 
 -- DONE --
@@ -73,34 +73,36 @@ QueryWithFile : Func StringExp                              { FuncStack $1 $2}
 SimpleQuery : Func                                          { FuncStackB $1 }              
             | Func '|' SimpleQuery                          { FuncStackBSeq $1 $3 }
 
---DONE --
+-- DONE --
 -- Create variables
 -- Extra rule used to remove shift/reduce conflict
 CreateVars : CreateVar                                      { UVarEnv $1 }
            | CreateVar  CreateVars                          { VarEnv $1 $2 }
 
---DONE --
+-- DONE --
 CreateVar : var '=' IntExp                                  { IntVar $1 $3 }
           | var '=' StringExp                               { StringVar $1 $3 }
           | var '=' BoolExp                                 { BoolVar $1 $3 }
-          -- | var '=' IntOp                              { IntOpVar $1 $3 }
 
--- DONE
 -- Functions that return RDF Graphs are listed here
 -- Func : filter '('FilterEl',' FilterEl',' Literal')'    { Filter $3 $5 $7 }
---      | map '('Cond')'                                  { Map $3 }
-Func : union SList                                          { Union $2 }
+Func : map '('Cond')'                                       { Map $3 }
+     | union SList                                          { Union $2 }
      | join '('Node',' Node')' SList                        { NormalJoin $3 $5 $7 }
      | join JoinOption '('Node',' Node')' SList             { Join $2 $4 $6 $8 }
 
 -- DONE --
-IntExp : int                                                { QInt $1 }
+-- All possible triplet formats (needed to be specified like that to avoid reduce/reduce conflicts)
+-- Triplet: '(' Subject ',' Predicate',' Object ')'            { All $2 $4 $6 }
+--        | '(' Subject ',' Predicate','   '_'  ')'            { AnyObj $2 $4 }
+--        | '(' Subject ','   '_'    ',' Object ')'            { AnyPred $2 $6 }
+--        | '(' Subject ','   '_'    ','   '_'  ')'            { OnlySbj $2 }
+--        | '('   '_'   ',' Predicate',' Object ')'            { AnySbj $4 $6 }
+--        | '('   '_'   ',' Predicate','   '_'  ')'            { OnlyPred $4 }
+--        | '('   '_'   ','   '_'    ',' Object ')'            { OnlyObj $6 }
+--        | '('   '_'   ','   '_'    ','   '_'  ')'            { AnyTriplet }
 
--- DONE --
-BoolExp : true                                              { QTrue }
-        | false                                             { QFalse }
-
--- -- The parameters allowed in the filter function
+-- The parameters allowed in the filter function
 -- FilterEl : '_'                                         { Any }
 --          | List                                        { $1 }
 
@@ -127,19 +129,20 @@ SListElem : StringExp                                       { SListEl $1 }
 -- ListElem : Literal1                                    { ListEl $1 }
 --          | Literal1 ',' ListElem                       { ListEls $1 $3 }
 
+-- Done
 -- Conditions are used for the map function
--- Cond : Action                                         { $1 }
---      | '('BoolExp')''?' Cond':'Cond                   { If $2 $5 $7 }
+Cond : Action                                         { Always $1 }
+     | Action ',' Action                              { ActionSeq $1 $3 }
+     | '('BoolExp')''?' Cond':'Cond                   { If $2 $5 $7 }
 
+--DONE
 -- Actions are executed when conditions are satisfied
--- Action : subj '=' Url                                 { AssignSubj $1 $3 }
---        | pred '=' Url                                 { AssignPred $1 $3 }
---        | obj '=' Url                                  { AssignObjUrl $1 $3 }
---        | obj '=' StringExp                            { AssignObjStr $1 $3 }
---        | obj '=' IntExp                               { AssignObjInt $1 $3 }
---        | obj '=' BoolExp                              { AssignObjBool $1 $3 }
-     --   | obj '=' IntOp                                { AssignObjOp $3 }
-     --   | obj '=' var                                  { AssignObjVar $3 }
+Action : Subject '=' Url                                 { AssignSubj $1 $3 }
+       | Predicate '=' Url                               { AssignPred $1 $3 }
+       | Object '=' Url                                  { AssignObjUrl $1 $3 }
+       | Object '=' StringExp                            { AssignObjStr $1 $3 }
+       | Object '=' IntExp                               { AssignObjInt $1 $3 }
+       | Object '=' BoolExp                              { AssignObjBool $1 $3 }
 
 -- -- Literal includes strings, integers, booleans, and the wildcard any (_)
 -- Literal : Literal1                                    { $1 }
@@ -150,99 +153,100 @@ SListElem : StringExp                                       { SListEl $1 }
 --          | BoolExp                                    { $1 }
 --          | StringExp                                  { $1 }
 
--- -- Integer Expression
--- IntExp : IntExp '+' IntExp                   { Plus $1 $3 } 
---        | var '+' IntExp                      { Plus $1 $3 }
---        | IntExp '+' var                      { Plus $1 $3 }
---        | IntExp '-' IntExp                   { Minus $1 $3 }
---        | var '-' IntExp                      { Minus $1 $3 }
---        | IntExp '-' var                      { Minus $1 $3 }
---        | IntExp '*' IntExp                   { Times $1 $3 }
---        | var '*' IntExp                      { Times $1 $3 }
---        | IntExp '*' var                      { Times $1 $3 }
---        | IntExp '/' IntExp                   { Div $1 $3 }
---        | var '/' IntExp                      { Div $1 $3 }
---        | IntExp '/' var                      { Div $1 $3 } 
---        | IntExp '^' IntExp                   { Expo $1 $3 }
---        | var '^' IntExp                      { Expo $1 $3 }
---        | IntExp '^' var                      { Expo $1 $3 }
---        | '(' IntExp ')'                      { $2 } 
---        | '-' IntExp %prec NEG                { Negate $2 } 
---        | int                                 { QInt $1 }
+-- DONE --
+-- Integer Expression
+IntExp : IntExp '+' IntExp                   { PlusII $1 $3 }
+       | Object '+' IntExp                   { PlusOI $1 $3 } 
+       | IntExp '+' Object                   { PlusIO $1 $3 } 
+       | Object '+' Object                   { PlusOO $1 $3 } 
+       
+       | IntExp '-' IntExp                   { MinusII $1 $3 }
+       | Object '-' IntExp                   { MinusOI $1 $3 }
+       | IntExp '-' Object                   { MinusIO $1 $3 }
+       | Object '-' Object                   { MinusOO $1 $3 }
+       
+       | IntExp '*' IntExp                   { TimesII $1 $3 }
+       | Object '*' IntExp                   { TimesOI $1 $3 }
+       | IntExp '*' Object                   { TimesIO $1 $3 }
+       | Object '*' Object                   { TimesOO $1 $3 }
 
--- -- Integer Operation on an Object
--- IntOp : IntOp '+' IntOp                      { ObPlus $1 $3 }
---       | var '+' IntOp                        { ObPlus $1 $3 }
---       | IntOp '+' var                        { ObPlus $1 $3 }
---       | IntExp '+' IntOp                     { ObPlus $1 $3 }
---       | IntOp '+' IntExp                     { ObPlus $1 $3 }
---       | IntOp '-' IntOp                      { ObMinus $1 $3 }
---       | var '-' IntOp                        { ObMinus $1 $3 }
---       | IntOp '-' var                        { ObMinus $1 $3 }
---       | IntExp '-' IntOp                     { ObMinus $1 $3 }
---       | IntOp '-' IntExp                     { ObMinus $1 $3 }
---       | IntOp '*' IntOp                      { ObTimes $1 $3 }
---       | var '*' IntOp                        { ObTimes $1 $3 }
---       | IntOp '*' var                        { ObTimes $1 $3 }
---       | IntExp '*' IntOp                     { ObTimes $1 $3 }
---       | IntOp '*' IntExp                     { ObTimes $1 $3 } 
---       | IntOp '/' IntOp                      { ObDiv $1 $3 } 
---       | var '/' IntOp                        { ObDiv $1 $3 } 
---       | IntOp '/' var                        { ObDiv $1 $3 }
---       | IntExp '/' IntOp                     { ObDiv $1 $3 }
---       | IntOp '/' IntExp                     { ObDiv $1 $3 }
---       | IntOp '^' IntOp                      { ObExpo $1 $3 }
---       | var '^' IntOp                        { ObExpo $1 $3 }
---       | IntOp '^' var                        { ObExpo $1 $3 }
---       | IntExp '^' IntOp                     { ObExpo $1 $3 }
---       | IntOp '^' IntExp                     { ObExpo $1 $3 }
---       | '(' IntOp ')'                        { $2 } 
---       | '-' IntOp %prec NEG                  { Negate $2 }
---       | obj                                           { $1 }
+       | IntExp '/' IntExp                   { DivII $1 $3 }
+       | Object '/' IntExp                   { DivOI $1 $3 }
+       | IntExp '/' Object                   { DivIO $1 $3 }
+       | Object '/' Object                   { DivOO $1 $3 }
 
--- -- Boolean Expression
--- BoolExp : BoolExp and BoolExp                         { And $1 $3 }
---         | var and BoolExp                             { And $1 $3 }
---         | BoolExp and var                             { And $1 $3 }
---         | BoolExp or BoolExp                          { Or $1 $3 }
---         | var or BoolExp                              { Or $1 $3 }
---         | BoolExp or var                              { Or $1 $3 }
---         | IntExp deq IntExp                           { EQ $1 $3 }
---         | var deq IntExp                              { EQ $1 $3 }
---         | IntExp deq var                              { EQ $1 $3 }
---         | IntExp '<' IntExp                           { LT $1 $3 }
---         | IntExp '>' IntExp                           { GT $1 $3 }
---         | IntExp '<' obj                              { GT $1 Obj }
---         | obj '<' IntExp                              { GT Obj $3 }
---         | StringExp deq StringExp                     { EQ $1 $3 }
---         | StringExp deq subj                          { EQ $1 Subj }
---         | subj deq StringExp                          { EQ Subj $3 }
---         | StringExp deq pred                          { EQ $1 Pred }
---         | pred deq StringExp                          { EQ Pred $3 }
---         | StringExp deq obj                           { EQ $1 Obj }
---         | obj deq StringExp                           { EQ Obj $3 }
---         | '(' BoolExp ')'                             { $2 }
---         | true                                        { QTrue }
---         | false                                       { QFalse }
+       | IntExp '^' IntExp                   { ExpoII $1 $3 }
+       | Object '^' IntExp                   { ExpoOI $1 $3 }
+       | IntExp '^' Object                   { ExpoIO $1 $3 }
+       | Object '^' Object                   { ExpoOO $1 $3 }
 
--- DONE
+       | '(' IntExp ')'                      { $2 } 
+     --   | '(' Object ')'                      { $2 } 
+       
+       | '-' IntExp %prec NEG                { NegateI $2 } 
+       | '-' Object %prec NEG                { NegateO $2 } 
+
+       | int                                 { QInt $1 }
+       | var                                 { IntVariable $1 }
+       
+-- DONE --
+-- Boolean Expression
+BoolExp : BoolExp and BoolExp                         { And $1 $3 }
+        | BoolExp or BoolExp                          { Or $1 $3 }
+
+        | IntExp '>' IntExp                           { GTII $1 $3 }
+        | IntExp '>' Object                           { GTIO $1 $3 }
+        | Object '>' IntExp                           { GTOI $1 $3 }
+
+        | IntExp '<' IntExp                           { LTII $1 $3 }
+        | IntExp '<' Object                           { LTIO $1 $3 }
+        | Object '<' IntExp                           { LTOI $1 $3 }
+
+        | StringExp deq StringExp                     { EQSS $1 $3 }
+        | IntExp deq IntExp                           { EQII $1 $3 }
+        | Node deq StringExp                          { EQNS $1 $3 }
+        | StringExp deq Node                          { EQSN $1 $3 }
+        | Node deq Url                                { EQNU $1 $3 }
+        | Url deq Node                                { EQUN $1 $3 }
+
+        | '(' BoolExp ')'                             { $2 }
+        
+        | true                                        { QTrue }
+        | false                                       { QFalse }
+     --    | var                                         { BoolVariable }
+     --    | Object                                      { BoolObj }
+
+-- DONE --
 -- String Expression
 StringExp : string                                    { QString $1 }
 
--- DONE
+          -- | var                                       { StrVariable }
+
+-- DONE --
 -- String Expression including the wildcard any (_)
-StringExp1 : StringExp                                { SpecifiedStr $1 }
-           | '_'                                      { Any }
+-- StringExp1 : StringExp                                { SpecifiedStr $1 }
+--            | '_'                                      { Any }
 
 -- DONE --
 -- Types of nodes: Subject (subj), Predicate (pred), Object (obj)
-Node : subj                                           { Subj } 
-     | pred                                           { Pred } 
-     | obj                                            { Obj }
+Node : Subject                                        { S $1 } 
+     | Predicate                                      { P $1 } 
+     | Object                                         { O $1 }
 
--- DONE
+-- DONE --
+Subject : subj                                        { Subj }
+
+-- DONE --
+Predicate : pred                                      { Pred }
+
+-- DONE --
+Object : obj                                          { Obj }
+
+-- DONE --
 -- Creates a url data object
 Url : url                                             { NewUrl $1 }
+
+
 
 {
 parseError :: [LangToken] -> a
@@ -280,6 +284,7 @@ parseError ((TokenUnion(AlexPn _ l c)) : xs) = error (printing l c)
 parseError ((TokenJoin(AlexPn _ l c)) : xs) = error (printing l c)
 parseError ((TokenWhere (AlexPn _ l c)) : xs) = error (printing l c)
 parseError ((TokenAnd (AlexPn _ l c)) : xs) = error (printing l c)
+parseError ((TokenUrl (AlexPn _ l c)_) : xs) = error (printing l c)
 parseError ((TokenOr (AlexPn _ l c))  : xs) = error (printing l c)
 parseError ((TokenVar (AlexPn _ l c) _ )  : xs) = error (printing l c)
 
@@ -288,19 +293,49 @@ parseError [] = error "Missing output file"
 
 printing x y = "Issue in row: "++show x ++ ", column:" ++ show y
 
-data Node = Subj | Pred | Obj
+data Subject = Subj
+     deriving Show
+
+data Predicate = Pred
+     deriving Show
+
+data Object =  Obj 
+     deriving Show
+
+data Node = S Subject | P Predicate | O Object
      deriving Show
      
+-- data Triplet = All Subject Predicate Object 
+--              | AnyObj Subject Predicate |AnyPred Subject Object | AnySbj Predicate Object 
+--              | OnlySbj Subject Predicate Object |OnlyPred Subject Predicate Object |OnlyObj Subject Predicate Object 
+--              | AnyTriplet Subject Predicate Object 
+
 data StringExp = QString String
      deriving Show
      
 data StringExp1 = SpecifiedStr StringExp | Any
      deriving Show
      
-data IntExp = QInt Int
+-- TODO: add IntVariable & IntObj to doc
+data IntExp = PlusII IntExp IntExp | PlusOI Object IntExp | PlusIO IntExp Object | PlusOO Object Object |
+              MinusII IntExp IntExp | MinusOI Object IntExp | MinusIO IntExp Object | MinusOO Object Object |
+              TimesII IntExp IntExp | TimesOI Object IntExp | TimesIO IntExp Object | TimesOO Object Object |
+              DivII IntExp IntExp | DivOI Object IntExp | DivIO IntExp Object | DivOO Object Object |
+              ExpoII IntExp IntExp | ExpoOI Object IntExp | ExpoIO IntExp Object | ExpoOO Object Object |
+              QInt Int |
+              NegateI IntExp | NegateO Object |
+              IntVariable String -- |
+          --     IntObj Object
      deriving Show
      
-data BoolExp = QTrue | QFalse
+-- TODO change Nodes in doc
+data BoolExp = And BoolExp BoolExp| Or BoolExp BoolExp
+             | GTII IntExp IntExp | GTIO IntExp Object | GTOI Object IntExp 
+             | LTII IntExp IntExp | LTIO IntExp Object | LTOI Object IntExp
+             | EQSS StringExp StringExp | EQII IntExp IntExp | EQNS Node StringExp | EQSN StringExp Node
+             | EQNU Node Url | EQUN Url Node
+             | BoolVariable BoolExp |BoolObj Object
+             | QTrue | QFalse
      deriving Show
      
 data SList = StrList SListElem | StrListSingle StringExp
@@ -324,11 +359,16 @@ data QueryWithFile = FuncStack Func StringExp | FuncStackSeq Func StringExp Simp
 data SimpleQuery = FuncStackB Func | FuncStackBSeq Func SimpleQuery
      deriving Show
 
-data Func = Union SList | NormalJoin Node Node SList | Join JoinOption Node Node SList
+data Func = Map Cond | Union SList | NormalJoin Node Node SList | Join JoinOption Node Node SList
      deriving Show     
-     
--- data Action = AssignSubj Node Url | AssignPred Node Url | AssignObjUrl Node Url | AssignObjStr Node StringExp | AssignObjInt Node IntExp | AssignObjBool Node BoolExp
 
+data Cond = Always Action | ActionSeq Action Action | If BoolExp Cond Cond
+     deriving Show
+
+data Action = AssignSubj Subject Url | AssignPred Predicate Url | AssignObjUrl Object Url 
+            | AssignObjStr Object StringExp | AssignObjInt Object IntExp | AssignObjBool Object BoolExp
+     deriving Show
+     
 data JoinOption = BidirectJoin | LeftJoin | RightJoin
      deriving Show
 
