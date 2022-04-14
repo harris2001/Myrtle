@@ -1,5 +1,5 @@
 # Myrtle lang
-![Myrtle](myrtle.png)
+![Myrtle](MyrtleLang.png)
 # PLC-Coursework
 ## What is this?
 This is a Haskell interpreter that can be used to query data from the provided RDF files 
