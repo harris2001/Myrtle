@@ -5,7 +5,7 @@ import System.IO
 import System.Environment
 }
 
-%name parseCalc 
+%name parserTurtle 
 %tokentype { Token } 
 %error { parseError }
 %token 
@@ -27,11 +27,11 @@ import System.Environment
 %left "," ";" "."
 %% 
 
-Exp : Subject PredicateObject                    { Triplet $1 $2 }
+TTLGraph : Subject PredicateObject                    { Triplet $1 $2 }
     | base Url                                   { Base $2 }
     | prefix variable ":" Url                    { Prefix $2 $4 }
-    | Exp "." Exp                                { Seq $1 $3 }
-    | Exp "."                                    { $1 }
+    | TTLGraph "." TTLGraph                                { Seq $1 $3 }
+    | TTLGraph "."                                    { $1 }
 
 Subject : Url                                    { Sbj $1 }
 
@@ -96,10 +96,10 @@ data PredicateObject = PredObj Predicate Object | PredObjList PredicateObject Pr
 data Boolean = BTrue | BFalse
     deriving Show
 
-data Exp = Triplet Subject PredicateObject
+data TTLGraph = Triplet Subject PredicateObject
          | Base Url
          | Prefix String Url
-         | Seq Exp Exp
+         | Seq TTLGraph TTLGraph
       deriving Show
 
 -- Returns the string value of the Url datatype
@@ -109,7 +109,7 @@ getUrl (BaseNeededUrl u) = u
 getUrl (PrefixNeededUrl u) = u
 
 -- Takes a Url, the base url and the list of prefixes and return the reformed url
-rebaseUrl :: Url -> Exp -> [Exp] -> Url
+rebaseUrl :: Url -> TTLGraph -> [TTLGraph] -> Url
 rebaseUrl (FinalUrl url) _ _ = FinalUrl url
 rebaseUrl (BaseNeededUrl url) (Base (FinalUrl base)) _ = FinalUrl ("<"++tail (takeWhile('>'/=) base)++(tail (dropWhile(':'/=)url)))
 rebaseUrl (PrefixNeededUrl url) _ [] = error "No more prefixes found to unpack"
@@ -118,8 +118,8 @@ rebaseUrl u@(PrefixNeededUrl url) b@(Base (FinalUrl base)) ps@((Prefix prefix (F
 rebaseUrl u b ps = error "(getUrl u)"
 --f = rebaseUrl (PrefixNeededUrl "p:asgasg") (Base (FinalUrl "https://test/t/")) [Prefix "p" (FinalUrl "<http://www.cw.org/qprefix/>")]
 
--- Replaces all the occurences of Url in an Exp datatype
-modify :: Exp -> Exp -> [Exp] -> (Exp, Exp, [Exp])
+-- Replaces all the occurences of Url in an TTLGraph datatype
+modify :: TTLGraph -> TTLGraph -> [TTLGraph] -> (TTLGraph, TTLGraph, [TTLGraph])
 modify (Base base) b ps = (Base base, Base base, ps)
 modify pref@(Prefix s u@(FinalUrl url)) b ps = ((Prefix s u), b, (ps++[pref]))
 modify pref@(Prefix s url) b ps = ((Prefix s uu), b, (ps++[Prefix s uu]))
@@ -136,20 +136,20 @@ modify (Seq exp1 exp2) b ps = ((Seq exp11 exp22), base2, prefixes2)
                   prefixes2 = e2 3
 -- modify exp p ps = exp p ps
 
-getExp :: (Exp, Exp, [Exp]) -> Int -> [Exp]
+getExp :: (TTLGraph, TTLGraph, [TTLGraph]) -> Int -> [TTLGraph]
 getExp (exp, base, prefixes) option | option==1 = [exp]
                                     | option==2 = [base]
                                     | option==3 = prefixes
                                     | otherwise = error "Invalid option"
 
 -- Applies the modify function to PredicateObject datatype
-modifyPredObj :: PredicateObject -> Exp -> [Exp] -> PredicateObject
+modifyPredObj :: PredicateObject -> TTLGraph -> [TTLGraph] -> PredicateObject
 modifyPredObj (PredObj (Pred p) obj) b ps = (PredObj(Pred(rebaseUrl p b ps))(modifyObj obj b ps))
 modifyPredObj (PredObjList p1 p2) b ps = (PredObjList (modifyPredObj p1 b ps) (modifyPredObj p2 b ps))
 
 
 -- Rebases Objects (only changes urlObj)
-modifyObj :: Object -> Exp -> [Exp] -> Object
+modifyObj :: Object -> TTLGraph -> [TTLGraph] -> Object
 modifyObj (ObjList obj1 obj2) b ps = (ObjList (modifyObj obj1 b ps)(modifyObj obj2 b ps))
 modifyObj (UrlObj url) b ps = (UrlObj (rebaseUrl url b ps))
 modifyObj u b ps = u
@@ -160,7 +160,7 @@ main = do
         contents <- readFile "foo.ttl"
         let tokens = alexScanTokens contents
         -- print(tokens)
-        let expression = parseCalc tokens
-        print(expression)
+        let expression = parserTurtle tokens
+        -- print(expression)
         print(head(getExp (modify expression (Base(FinalUrl "")) []) 1))
 } 
