@@ -1,3 +1,5 @@
+# Myrtle lang
+![Myrtle](myrtle.png)
 # PLC-Coursework
 ## What is this?
 This is a Haskell interpreter that can be used to query data from the provided RDF files 
@@ -5,17 +7,15 @@ This is a Haskell interpreter that can be used to query data from the provided R
 
 ## How to run the interpreter
 #### Step 1: 
-> Compile the RDF Lexer & Language Lexer using the Alex tool
+> Compile the Language Lexer using the Alex tool
 ```
-$ alex RDF_Lexer.x
-$ alex LangTokens.x
+$ alex MyrtleLexer.x
 ```
 
 #### Step 2: 
-> Compile the RDF Parser with the Happy tool
+> Compile the Language Parser with the Happy tool
 ```
-$ happy RDF_Parser.y
-$ happy LangParser.y
+$ happy MyrtleParser.y
 ```
 
 #### Step 3:
@@ -30,7 +30,7 @@ union ["foo.tll",'testing.tll'] "foo.tll"
 #### Step 4: 
 > Run parser with runghc command and provide the file where you have written your code as an argument
 ```
-$ runghc LangParser.hs script.q
+$ runghc MyrtleParser.hs script.q
 ```
 
 

@@ -1,11 +1,8 @@
 { 
-module LangParser where 
-import LangTokens
-
--- import RDF_Parser
-
+module MyrtleParser where
+import MyrtleLexer
+import System.IO
 import System.Environment
-
 }
 
 %name parseQuery
@@ -35,6 +32,7 @@ import System.Environment
   '['            { TokenLBrack _ }
   ']'            { TokenRBrack _ }
   string         { TokenString _ $$ }
+  filename       { TokenFilename _ $$ }
   '|'            { TokenPipe _ }
   '?'            { TokenQuestion _ }
   ':'            { TokenColon _ }
@@ -44,11 +42,20 @@ import System.Environment
   union          { TokenUnion _ }
   join           { TokenJoin _ }
   where          { TokenWhere _ }
-  url            { TokenUrl _ $$ }
   and            { TokenAnd _ }
   or             { TokenOr _ }
   var            { TokenVar _ $$ }
+  --
+  '.'            {TokenDot _ }
+  ';'            {TokenSemiColon _ }
+  url            {TokenUrl _ $$ }
+  unbasedUrl     {TokenUnbasedUrl _ $$ }
+  unprefixedUrl  {TokenUnprefixedUrl _ $$ }
+  prefix         {TokenPrefix _ }
+  base           {TokenBase _ }
+--   number        {TokenNumber _ $$}
 
+%left "," ";" "."
 %left '='
 %left '+' '-' or
 %left '*' '/' and
@@ -67,8 +74,8 @@ Query : QueryWithFile                                       { NewQuery $1 }
 
 -- DONE --
 -- This is a separate rule because the input file is only put at the beginning
-QueryWithFile : Func StringExp                              { FuncStack $1 $2}
-              | Func StringExp '|' SimpleQuery              { FuncStackSeq $1 $2 $4}
+QueryWithFile : Func filename                              { FuncStack $1 $2}
+              | Func filename '|' SimpleQuery              { FuncStackSeq $1 $2 $4}
 
 -- DONE --
 -- The following functions don't requrie an input file (unless the function is used to handle multiple files) 
@@ -112,11 +119,11 @@ JoinOption : '-r' '-l'                                      { BidirectJoin }
 -- DONE --
 -- List of strings
 SList : '[' SListElem ']'                                   { StrList $2 }
-      | StringExp                                           { StrListSingle $1 }
+      | filename                                            { StrListSingle $1 }
 
 -- DONE --
-SListElem : StringExp                                       { SListEl $1 }
-          | StringExp ',' SListElem                         { SListSeq $1 $3 }     
+SListElem : filename                                       { SListEl $1 }
+          | filename ',' SListElem                         { SListSeq $1 $3 }     
 
 -- Done
 -- Conditions are used for the map function
@@ -218,15 +225,10 @@ BoolExp : BoolExp and BoolExp                         { And $1 $3 }
         
         | true                                        { QTrue }
         | false                                       { QFalse }
-     -- TODO: ADD VAR IN BOOL EXP
-     --    | var                                         { BoolVariable }
-     --    | Object                                      { BoolObj }
 
 -- DONE --
 -- String Expression
 StringExp : string                                    { QString $1 }
-          -- TODO: ADD VAR IN STRING EXP
-          -- | var                                       { StrVariable }
 
 -- DONE --
 -- Types of nodes: Subject (subj), Predicate (pred), Object (obj)
@@ -245,7 +247,45 @@ Object : obj                                          { Obj }
 
 -- DONE --
 -- Creates a url data object
-Url : url                                             { NewUrl $1 }
+-- Url : url                                             { NewUrl $1 }
+
+
+
+
+
+
+
+
+
+
+TTLGraph : TTLSubject PredicateObject               { Triplet $1 $2 }
+    | base Url                                      { Base $2 }
+    | prefix var ':' Url                            { Prefix $2 $4 }
+    | TTLGraph '.' TTLGraph                         { Seq $1 $3 }
+    | TTLGraph '.'                                  { $1 }
+
+TTLSubject : Url                                    { Sbj $1 }
+
+TTLPredicate : Url                                  { TTLPred $1 }
+
+PredicateObject: TTLPredicate TTLObject                           { PredObj $1 $2 }
+               | PredicateObject ';' PredicateObject           { PredObjList $1 $3 }    
+
+TTLObject : Url                         { UrlObj $1 }
+       | int                            { IntObj $1 }
+       | '-' int                        { IntObj (-$2) }
+       | true                           { TTLBoolObj True }
+       | false                          { TTLBoolObj False }
+       | string                         { StrObj $1 }
+       | TTLObject ',' TTLObject        { ObjList $1 $3 }
+
+
+Url : url                               { FinalUrl $1 }
+    | unbasedUrl                        { BaseNeededUrl ("<@base:"++(tail $1))}
+    | unprefixedUrl                     { PrefixNeededUrl ("<"++$1++">") }
+
+
+
 
 
 
@@ -285,14 +325,57 @@ parseError ((TokenUnion(AlexPn _ l c)) : xs) = error (printing l c)
 parseError ((TokenJoin(AlexPn _ l c)) : xs) = error (printing l c)
 parseError ((TokenWhere (AlexPn _ l c)) : xs) = error (printing l c)
 parseError ((TokenAnd (AlexPn _ l c)) : xs) = error (printing l c)
-parseError ((TokenUrl (AlexPn _ l c)_) : xs) = error (printing l c)
 parseError ((TokenOr (AlexPn _ l c))  : xs) = error (printing l c)
 parseError ((TokenVar (AlexPn _ l c) _ )  : xs) = error (printing l c)
+--
+parseError ((TokenDot (AlexPn _ x y)) : xs) = error (printing x y)
+parseError ((TokenSemiColon (AlexPn _ x y)) : xs) = error (printing x y)
+parseError ((TokenUrl (AlexPn _ x y) _ ) : xs) = error (printing x y)
+parseError ((TokenUnbasedUrl (AlexPn _ x y) _ ) : xs) = error (printing x y)
+parseError ((TokenUnprefixedUrl (AlexPn _ x y) _ ) : xs) = error (printing x y)
+parseError ((TokenTrue (AlexPn _ x y)) : xs) = error (printing x y)
+parseError ((TokenFalse (AlexPn _ x y)) : xs) = error (printing x y)
+parseError ((TokenPrefix (AlexPn _ x y)) : xs) = error (printing x y)
+parseError ((TokenBase (AlexPn _ x y)) : xs) = error (printing x y)
+parseError ((TokenNumber (AlexPn _ x y) _ ) : xs) = error (printing x y)
+parseError ((TokenFilename (AlexPn _ x y) _ ) : xs) = error (printing x y)
 
 parseError [] = error "Missing output file"
 
-
 printing x y = "Issue in row: "++show x ++ ", column:" ++ show y
+
+
+-- A url datatype holds all three possible types of urls
+-- Final, BaseNeeded and PrefixNeeded Url
+data Url =  FinalUrl String | BaseNeededUrl String | PrefixNeededUrl String
+    deriving Show
+
+data TTLSubject = Sbj Url
+    deriving Show
+
+data TTLPredicate = TTLPred Url
+    deriving Show
+
+data TTLObject = UrlObj Url | IntObj Int | TTLBoolObj Bool | StrObj String | ObjList TTLObject TTLObject
+    deriving Show
+
+data PredicateObject = PredObj TTLPredicate TTLObject | PredObjList PredicateObject PredicateObject
+    deriving Show
+
+-- data Boolean = BTrue | BFalse
+--     deriving Show
+
+data TTLGraph = Triplet TTLSubject PredicateObject
+         | Base Url
+         | Prefix String Url
+         | Seq TTLGraph TTLGraph
+      deriving Show
+
+
+
+
+
+
 
 data Subject = Subj
      deriving Show
@@ -336,10 +419,10 @@ data BoolExp = And BoolExp BoolExp | AndIO BoolExp Object | AndOI Object BoolExp
              | QTrue | QFalse
      deriving Show
      
-data SList = StrList SListElem | StrListSingle StringExp
+data SList = StrList SListElem | StrListSingle String
      deriving Show
      
-data SListElem = SListEl StringExp | SListSeq StringExp SListElem
+data SListElem = SListEl String | SListSeq String SListElem
      deriving Show
      
 data CreateVar = IntVar String IntExp | BoolVar String BoolExp | StringVar String StringExp
@@ -351,7 +434,7 @@ data CreateVars = UVarEnv CreateVar | VarEnv CreateVar CreateVars
 data Query = NewQuery QueryWithFile | WhereQuery QueryWithFile CreateVars
      deriving Show
      
-data QueryWithFile = FuncStack Func StringExp | FuncStackSeq Func StringExp SimpleQuery
+data QueryWithFile = FuncStack Func String | FuncStackSeq Func String SimpleQuery
      deriving Show
      
 data SimpleQuery = FuncStackB Func | FuncStackBSeq Func SimpleQuery
@@ -367,8 +450,8 @@ data Action = AssignSubj Subject Url | AssignPred Predicate Url | AssignObjUrl O
 data JoinOption = BidirectJoin | LeftJoin | RightJoin
      deriving Show
 
-data Url = NewUrl String
-     deriving Show
+-- data Url = NewUrl String
+--      deriving Show
 
 data UrlList = SimpleUrl Url | UrlSeq Url UrlList
      deriving Show
@@ -384,13 +467,88 @@ data Func = Map Cond | Union SList | NormalJoin Node Node SList | Join JoinOptio
      deriving Show     
 
 
-main :: IO()
 
+
+
+
+
+
+-- Returns the string value of the Url datatype
+getUrl ::  Url -> String
+getUrl (FinalUrl u) = u
+getUrl (BaseNeededUrl u) = u
+getUrl (PrefixNeededUrl u) = u
+
+-- Takes a Url, the base url and the list of prefixes and return the reformed url
+rebaseUrl :: Url -> TTLGraph -> [TTLGraph] -> Url
+rebaseUrl (FinalUrl url) _ _ = FinalUrl url
+rebaseUrl (BaseNeededUrl url) (Base (FinalUrl base)) _ = FinalUrl ("<"++tail (takeWhile('>'/=) base)++(tail (dropWhile(':'/=)url)))
+rebaseUrl (PrefixNeededUrl url) _ [] = error "No more prefixes found to unpack"
+rebaseUrl u@(PrefixNeededUrl url) b@(Base (FinalUrl base)) ps@((Prefix prefix (FinalUrl mapping)):p@prefixes) | prefix == (tail(takeWhile(':'/=) url)) = FinalUrl ("<"++tail (takeWhile('>'/=)mapping)++(tail (dropWhile(':'/=)url)))
+                                                                                                              | otherwise = rebaseUrl u b p
+rebaseUrl u b ps = error "(getUrl u)"
+--f = rebaseUrl (PrefixNeededUrl "p:asgasg") (Base (FinalUrl "https://test/t/")) [Prefix "p" (FinalUrl "<http://www.cw.org/qprefix/>")]
+
+-- Replaces all the occurences of Url in an TTLGraph datatype
+modify :: TTLGraph -> TTLGraph -> [TTLGraph] -> (TTLGraph, TTLGraph, [TTLGraph])
+modify (Base base) b ps = (Base base, Base base, ps)
+modify pref@(Prefix s u@(FinalUrl url)) b ps = ((Prefix s u), b, (ps++[pref]))
+modify pref@(Prefix s url) b ps = ((Prefix s uu), b, (ps++[Prefix s uu]))
+    where uu = (rebaseUrl url b ps)
+modify (Triplet (Sbj subj) predObj) b ps = ((Triplet (Sbj (rebaseUrl subj b ps)) (modifyPredObj predObj b ps)), b, ps)
+modify (Seq exp1 exp2) b ps = ((Seq exp11 exp22), base2, prefixes2)
+            where e1 = getExp (modify exp1 b ps)
+                  exp11 = head (e1 1)
+                  base1 = head (e1 2)
+                  prefixes1 = e1 3
+                  e2 = (getExp (modify exp2 base1 prefixes1))
+                  exp22 = head (e2 1)
+                  base2 = head (e2 2)
+                  prefixes2 = e2 3
+-- modify exp p ps = exp p ps
+
+getExp :: (TTLGraph, TTLGraph, [TTLGraph]) -> Int -> [TTLGraph]
+getExp (exp, base, prefixes) option | option==1 = [exp]
+                                    | option==2 = [base]
+                                    | option==3 = prefixes
+                                    | otherwise = error "Invalid option"
+
+-- Applies the modify function to PredicateObject datatype
+modifyPredObj :: PredicateObject -> TTLGraph -> [TTLGraph] -> PredicateObject
+modifyPredObj (PredObj (TTLPred p) obj) b ps = (PredObj(TTLPred(rebaseUrl p b ps))(modifyObj obj b ps))
+modifyPredObj (PredObjList p1 p2) b ps = (PredObjList (modifyPredObj p1 b ps) (modifyPredObj p2 b ps))
+
+
+-- Rebases Objects (only changes urlObj)
+modifyObj :: TTLObject -> TTLGraph -> [TTLGraph] -> TTLObject
+modifyObj (ObjList obj1 obj2) b ps = (ObjList (modifyObj obj1 b ps)(modifyObj obj2 b ps))
+modifyObj (UrlObj url) b ps = (UrlObj (rebaseUrl url b ps))
+modifyObj u b ps = u
+
+
+main :: IO()
 main = do 
         file <- getArgs
         contents <- readFile (head file)
         let tokens = alexScanTokens contents
-     --    print(tokens)
+        print(tokens)
         let expression = parseQuery tokens
         print(expression)
+        parseGraph(expression)
 }
+
+-- parseGraph :: Query -> String
+
+-- parseGraph
+
+
+-- main :: IO()
+-- main = do 
+--         contents <- readFile "foo.ttl"
+--         let tokens = alexScanTokens contents
+--         print(tokens)
+--         let expression = parseQuery tokens
+--         print(expression)
+        -- print(head(getExp (modify expression (Base(FinalUrl "")) []) 1))
+-- } 
+------------------------------------------------------------------------------------------
