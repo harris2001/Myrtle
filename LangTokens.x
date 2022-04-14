@@ -1,5 +1,8 @@
 { 
 module LangTokens where 
+import System.IO
+import System.Environment  
+import RDF_Lexer
 }
 
 %wrapper "posn" 
@@ -135,5 +138,12 @@ tokenPosn (TokenUrl (AlexPn a l c) _ ) = show(l) ++ ":" ++ show(c)
 tokenPosn (TokenOr (AlexPn a l c)) = show(l) ++ ":" ++ show(c)
 tokenPosn (TokenVar (AlexPn a l c) _) = show(l) ++ ":" ++ show(c)
 tokenPosn (TokenString (AlexPn a l c) _) = show(l) ++ ":" ++ show(c)
+
+
+main :: IO()
+main = do 
+        contents <- readFile "script.q"
+        let tokens = alexScanTokens contents
+        print(tokens)
 
 }

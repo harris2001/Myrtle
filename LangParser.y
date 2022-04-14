@@ -1,9 +1,8 @@
 { 
-module LangGrammar where 
+module LangParser where 
 import LangTokens
 
--- import RDF_Lexer
-import RDF_Parser
+-- import RDF_Parser
 
 import System.Environment
 
@@ -92,7 +91,7 @@ Func : filter '(' FilterEl ',' FilterEl ',' Literal ')'     { Filter $3 $5 $7 }
      | union SList                                          { Union $2 }
      | join '('Node',' Node')' SList                        { NormalJoin $3 $5 $7 }
      | join JoinOption '('Node',' Node')' SList             { Join $2 $4 $6 $8 }
-
+     
 -- DONE
 -- The parameters allowed in the filter function
 FilterEl : '_'                                              { Any }
