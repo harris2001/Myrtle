@@ -13,6 +13,7 @@ $alpha = [a-zA-Z]
 
 tokens :-
 $white+       ; 
+  -- $digit+                 { \p s -> TokenInt p (read s) }
   "."                     { \p s -> TokenDot p }
   ":"                     { \p s -> TokenColon p }
   ","                     { \p s -> TokenComa p }
@@ -24,20 +25,22 @@ $white+       ;
   $alpha[$alpha $digit]*:[$alpha $digit]+    { \p s -> TokenUnprefixedUrl p s }
   "true"                  { \p s -> TokenTrue p }
   "false"                 { \p s -> TokenFalse p }
-  $alpha+                 { \p s -> TokenVariable p s }
   "@prefix"               { \p s -> TokenPrefix p }
   "@base"                 { \p s -> TokenBase p }
   "-"?$digit+             { \p s -> TokenNumber p (read s)}
+  $alpha [$alpha $digit \_ \’]*      { \p s -> TokenVar p s }
+
 {
 -- Each action has type ::  AlexPosn -> String -> Token 
 -- The token type: 
 data Token =    
       TokenDot AlexPosn                  |
+      TokenInt AlexPosn Int              |
       TokenColon AlexPosn                |
       TokenComa AlexPosn                 |
       TokenSemiColon AlexPosn            |
       TokenString AlexPosn String        |
-      TokenVariable AlexPosn String      |
+      TokenVar AlexPosn String           |
       TokenUrl AlexPosn String           |
       TokenUnbasedUrl AlexPosn String    |
       TokenUnprefixedUrl AlexPosn String |

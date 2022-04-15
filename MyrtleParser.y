@@ -3,6 +3,8 @@ module MyrtleParser where
 import MyrtleLexer
 import System.IO
 import System.Environment
+
+import Data.List
 }
 
 %name parseQuery
@@ -247,7 +249,7 @@ Object : obj                                          { Obj }
 
 -- DONE --
 -- Creates a url data object
--- Url : url                                             { NewUrl $1 }
+Url : url                                             { NewUrl $1 }
 
 
 
@@ -258,31 +260,31 @@ Object : obj                                          { Obj }
 
 
 
-TTLGraph : TTLSubject PredicateObject               { Triplet $1 $2 }
-    | base Url                                      { Base $2 }
-    | prefix var ':' Url                            { Prefix $2 $4 }
-    | TTLGraph '.' TTLGraph                         { Seq $1 $3 }
-    | TTLGraph '.'                                  { $1 }
+-- TTLGraph : TTLSubject PredicateObject               { Triplet $1 $2 }
+--     | base Url                                      { Base $2 }
+--     | prefix var ':' Url                            { Prefix $2 $4 }
+--     | TTLGraph '.' TTLGraph                         { Seq $1 $3 }
+--     | TTLGraph '.'                                  { $1 }
 
-TTLSubject : Url                                    { Sbj $1 }
+-- TTLSubject : Url                                    { Sbj $1 }
 
-TTLPredicate : Url                                  { TTLPred $1 }
+-- TTLPredicate : Url                                  { TTLPred $1 }
 
-PredicateObject: TTLPredicate TTLObject                           { PredObj $1 $2 }
-               | PredicateObject ';' PredicateObject           { PredObjList $1 $3 }    
+-- PredicateObject: TTLPredicate TTLObject                           { PredObj $1 $2 }
+--                | PredicateObject ';' PredicateObject           { PredObjList $1 $3 }    
 
-TTLObject : Url                         { UrlObj $1 }
-       | int                            { IntObj $1 }
-       | '-' int                        { IntObj (-$2) }
-       | true                           { TTLBoolObj True }
-       | false                          { TTLBoolObj False }
-       | string                         { StrObj $1 }
-       | TTLObject ',' TTLObject        { ObjList $1 $3 }
+-- TTLObject : Url                         { UrlObj $1 }
+--        | int                            { IntObj $1 }
+--        | '-' int                        { IntObj (-$2) }
+--        | true                           { TTLBoolObj True }
+--        | false                          { TTLBoolObj False }
+--        | string                         { StrObj $1 }
+--        | TTLObject ',' TTLObject        { ObjList $1 $3 }
 
 
-Url : url                               { FinalUrl $1 }
-    | unbasedUrl                        { BaseNeededUrl ("<@base:"++(tail $1))}
-    | unprefixedUrl                     { PrefixNeededUrl ("<"++$1++">") }
+-- Url : url                               { FinalUrl $1 }
+--     | unbasedUrl                        { BaseNeededUrl ("<@base:"++(tail $1))}
+--     | unprefixedUrl                     { PrefixNeededUrl ("<"++$1++">") }
 
 
 
@@ -328,17 +330,17 @@ parseError ((TokenAnd (AlexPn _ l c)) : xs) = error (printing l c)
 parseError ((TokenOr (AlexPn _ l c))  : xs) = error (printing l c)
 parseError ((TokenVar (AlexPn _ l c) _ )  : xs) = error (printing l c)
 --
-parseError ((TokenDot (AlexPn _ x y)) : xs) = error (printing x y)
-parseError ((TokenSemiColon (AlexPn _ x y)) : xs) = error (printing x y)
-parseError ((TokenUrl (AlexPn _ x y) _ ) : xs) = error (printing x y)
-parseError ((TokenUnbasedUrl (AlexPn _ x y) _ ) : xs) = error (printing x y)
-parseError ((TokenUnprefixedUrl (AlexPn _ x y) _ ) : xs) = error (printing x y)
-parseError ((TokenTrue (AlexPn _ x y)) : xs) = error (printing x y)
-parseError ((TokenFalse (AlexPn _ x y)) : xs) = error (printing x y)
-parseError ((TokenPrefix (AlexPn _ x y)) : xs) = error (printing x y)
-parseError ((TokenBase (AlexPn _ x y)) : xs) = error (printing x y)
-parseError ((TokenNumber (AlexPn _ x y) _ ) : xs) = error (printing x y)
-parseError ((TokenFilename (AlexPn _ x y) _ ) : xs) = error (printing x y)
+-- parseError ((TokenDot (AlexPn _ x y)) : xs) = error (printing x y)
+-- parseError ((TokenSemiColon (AlexPn _ x y)) : xs) = error (printing x y)
+-- parseError ((TokenUrl (AlexPn _ x y) _ ) : xs) = error (printing x y)
+-- parseError ((TokenUnbasedUrl (AlexPn _ x y) _ ) : xs) = error (printing x y)
+-- parseError ((TokenUnprefixedUrl (AlexPn _ x y) _ ) : xs) = error (printing x y)
+-- parseError ((TokenTrue (AlexPn _ x y)) : xs) = error (printing x y)
+-- parseError ((TokenFalse (AlexPn _ x y)) : xs) = error (printing x y)
+-- parseError ((TokenPrefix (AlexPn _ x y)) : xs) = error (printing x y)
+-- parseError ((TokenBase (AlexPn _ x y)) : xs) = error (printing x y)
+-- parseError ((TokenNumber (AlexPn _ x y) _ ) : xs) = error (printing x y)
+-- parseError ((TokenFilename (AlexPn _ x y) _ ) : xs) = error (printing x y)
 
 parseError [] = error "Missing output file"
 
@@ -347,29 +349,29 @@ printing x y = "Issue in row: "++show x ++ ", column:" ++ show y
 
 -- A url datatype holds all three possible types of urls
 -- Final, BaseNeeded and PrefixNeeded Url
-data Url =  FinalUrl String | BaseNeededUrl String | PrefixNeededUrl String
-    deriving Show
+-- data Url =  FinalUrl String | BaseNeededUrl String | PrefixNeededUrl String
+--     deriving Show
 
-data TTLSubject = Sbj Url
-    deriving Show
+-- data TTLSubject = Sbj Url
+--     deriving Show
 
-data TTLPredicate = TTLPred Url
-    deriving Show
+-- data TTLPredicate = TTLPred Url
+--     deriving Show
 
-data TTLObject = UrlObj Url | IntObj Int | TTLBoolObj Bool | StrObj String | ObjList TTLObject TTLObject
-    deriving Show
+-- data TTLObject = UrlObj Url | IntObj Int | TTLBoolObj Bool | StrObj String | ObjList TTLObject TTLObject
+--     deriving Show
 
-data PredicateObject = PredObj TTLPredicate TTLObject | PredObjList PredicateObject PredicateObject
-    deriving Show
+-- data PredicateObject = PredObj TTLPredicate TTLObject | PredObjList PredicateObject PredicateObject
+--     deriving Show
 
 -- data Boolean = BTrue | BFalse
 --     deriving Show
 
-data TTLGraph = Triplet TTLSubject PredicateObject
-         | Base Url
-         | Prefix String Url
-         | Seq TTLGraph TTLGraph
-      deriving Show
+-- data TTLGraph = Triplet TTLSubject PredicateObject
+--          | Base Url
+--          | Prefix String Url
+--          | Seq TTLGraph TTLGraph
+--       deriving Show
 
 
 
@@ -450,8 +452,8 @@ data Action = AssignSubj Subject Url | AssignPred Predicate Url | AssignObjUrl O
 data JoinOption = BidirectJoin | LeftJoin | RightJoin
      deriving Show
 
--- data Url = NewUrl String
---      deriving Show
+data Url = NewUrl String
+     deriving Show
 
 data UrlList = SimpleUrl Url | UrlSeq Url UrlList
      deriving Show
@@ -467,213 +469,4 @@ data Func = Map Cond | Union SList | NormalJoin Node Node SList | Join JoinOptio
      deriving Show     
 
 
-
-
-
-
-
-
--- Returns the string value of the Url datatype
-getUrl ::  Url -> String
-getUrl (FinalUrl u) = u
-getUrl (BaseNeededUrl u) = u
-getUrl (PrefixNeededUrl u) = u
-
--- Takes a Url, the base url and the list of prefixes and return the reformed url
-rebaseUrl :: Url -> TTLGraph -> [TTLGraph] -> Url
-rebaseUrl (FinalUrl url) _ _ = FinalUrl url
-rebaseUrl (BaseNeededUrl url) (Base (FinalUrl base)) _ = FinalUrl ("<"++tail (takeWhile('>'/=) base)++(tail (dropWhile(':'/=)url)))
-rebaseUrl (PrefixNeededUrl url) _ [] = error "No more prefixes found to unpack"
-rebaseUrl u@(PrefixNeededUrl url) b@(Base (FinalUrl base)) ps@((Prefix prefix (FinalUrl mapping)):p@prefixes) | prefix == (tail(takeWhile(':'/=) url)) = FinalUrl ("<"++tail (takeWhile('>'/=)mapping)++(tail (dropWhile(':'/=)url)))
-                                                                                                              | otherwise = rebaseUrl u b p
-rebaseUrl u b ps = error "(getUrl u)"
---f = rebaseUrl (PrefixNeededUrl "p:asgasg") (Base (FinalUrl "https://test/t/")) [Prefix "p" (FinalUrl "<http://www.cw.org/qprefix/>")]
-
--- Replaces all the occurences of Url in an TTLGraph datatype
-modify :: TTLGraph -> TTLGraph -> [TTLGraph] -> (TTLGraph, TTLGraph, [TTLGraph])
-modify (Base base) b ps = (Base base, Base base, ps)
-modify pref@(Prefix s u@(FinalUrl url)) b ps = ((Prefix s u), b, (ps++[pref]))
-modify pref@(Prefix s url) b ps = ((Prefix s uu), b, (ps++[Prefix s uu]))
-    where uu = (rebaseUrl url b ps)
-modify (Triplet (Sbj subj) predObj) b ps = ((Triplet (Sbj (rebaseUrl subj b ps)) (modifyPredObj predObj b ps)), b, ps)
-modify (Seq exp1 exp2) b ps = ((Seq exp11 exp22), base2, prefixes2)
-            where e1 = getExp (modify exp1 b ps)
-                  exp11 = head (e1 1)
-                  base1 = head (e1 2)
-                  prefixes1 = e1 3
-                  e2 = (getExp (modify exp2 base1 prefixes1))
-                  exp22 = head (e2 1)
-                  base2 = head (e2 2)
-                  prefixes2 = e2 3
--- modify exp p ps = exp p ps
-
-getExp :: (TTLGraph, TTLGraph, [TTLGraph]) -> Int -> [TTLGraph]
-getExp (exp, base, prefixes) option | option==1 = [exp]
-                                    | option==2 = [base]
-                                    | option==3 = prefixes
-                                    | otherwise = error "Invalid option"
-
--- Applies the modify function to PredicateObject datatype
-modifyPredObj :: PredicateObject -> TTLGraph -> [TTLGraph] -> PredicateObject
-modifyPredObj (PredObj (TTLPred p) obj) b ps = (PredObj(TTLPred(rebaseUrl p b ps))(modifyObj obj b ps))
-modifyPredObj (PredObjList p1 p2) b ps = (PredObjList (modifyPredObj p1 b ps) (modifyPredObj p2 b ps))
-
-
--- Rebases Objects (only changes urlObj)
-modifyObj :: TTLObject -> TTLGraph -> [TTLGraph] -> TTLObject
-modifyObj (ObjList obj1 obj2) b ps = (ObjList (modifyObj obj1 b ps)(modifyObj obj2 b ps))
-modifyObj (UrlObj url) b ps = (UrlObj (rebaseUrl url b ps))
-modifyObj u b ps = u
-
-
-main :: IO()
-main = do 
-        file <- getArgs
-        contents <- readFile (head file)
-        let tokens = alexScanTokens contents
-        print(tokens)
-        let expression = parseQuery tokens
-        print(expression)
-        print(processingQuery(expression))
-
-
--- processingGraph (Subj) = ""
--- processingGraph (Pred) = ""
--- processingGraph (Obj) = ""
--- processingGraph (S subj) = ""
--- processingGraph (P pred) = ""
--- processingGraph (O obj) = ""
--- processingGraph (QString str) = ""
-
--- processingGraph (PlusII int1 int2) = "" 
--- processingGraph (PlusOI obj1 int2) = "" 
--- processingGraph (PlusIO int1 obj2) = "" 
--- processingGraph (PlusOO obj1 obj2) = "" 
--- processingGraph (MinusII int1 int2) = "" 
--- processingGraph (MinusOI obj1 int2) = "" 
--- processingGraph (MinusIO int1 obj2) = "" 
--- processingGraph (MinusOO obj1 obj2) = "" 
--- processingGraph (TimesII int1 int2) = "" 
--- processingGraph (TimesOI obj1 int2) = "" 
--- processingGraph (TimesIO int1 obj2) = "" 
--- processingGraph (TimesOO obj1 obj2) = "" 
--- processingGraph (DivII int1 int2) = "" 
--- processingGraph (DivOI obj1 int2) = "" 
--- processingGraph (DivIO int1 obj2) = "" 
--- processingGraph (DivOO obj1 obj2) = "" 
--- processingGraph (ExpoII int1 int2) = "" 
--- processingGraph (ExpoOI obj1 int2) = "" 
--- processingGraph (ExpoIO int1 obj2) = "" 
--- processingGraph (ExpoOO obj1 obj2) = "" 
--- processingGraph (QInt int1) = ""
--- processingGraph (NegateI int1) = ""
--- processingGraph (NegateO obj1) = ""
--- processingGraph (IntVariable str1) = ""
-
--- processingGraph (And bool1 bool2) = ""
--- processingGraph (AndIO int1 obj2) = ""
--- processingGraph (AndOI obj1 int2) = ""
--- processingGraph (Or bool1 bool2) = ""
--- processingGraph (OrIO int1 obj2) = ""
--- processingGraph (OrOI obj1 int2) = ""
--- processingGraph (GTII int1 int2) = ""
--- processingGraph (GTIO int1 obj2) = ""
--- processingGraph (GTOI obj1 int2) = ""
--- processingGraph (LTII int1 int2) = ""
--- processingGraph (LTIO int1 obj2) = ""
--- processingGraph (LTOI obj1 int2) = ""
--- processingGraph (EQII int1 int2) = ""
--- processingGraph (EQBB bool1 bool2) = ""
--- processingGraph (EQSS str1 str2) = ""
--- processingGraph (EQUU url1 url2) = ""
--- processingGraph (EQOS obj1 str2) = ""
--- processingGraph (EQSO str1 obj2) = ""
--- processingGraph (EQOI obj1 int2) = ""
--- processingGraph (EQIO int1 obj2) = ""
--- processingGraph (EQOB obj1 bool2) = ""
--- processingGraph (EQBO bool1 obj2) = ""
--- processingGraph (EQSU str1 url2) = ""
--- processingGraph (EQUS url1 str2) = ""
--- processingGraph (EQPU pred1 url2) = ""
--- processingGraph (EQUP url1 pred2) = ""
--- processingGraph (EQOU obj1 url2) = ""
--- processingGraph (EQUO url1 obj2) = ""
--- processingGraph (QTrue) = ""
--- processingGraph (QFalse) = ""
-
-processingSlist :: SList -> String
-processingSlist (StrList sListElem) = (processingSlistElem sListElem)
-processingSlist (StrListSingle str) = str++"\n"
-
-processingSlistElem :: SListElem -> String
-processingSlistElem(SListEl str) = str++"\n"
-processingSlistElem(SListSeq str elems) = str++"\n"++(processingSlistElem elems)
-
--- processingGraph (IntVar str expr) = ""
--- processingGraph (BoolVar str expr) = ""
--- processingGraph (StringVar str expr) = ""
-
--- processingGraph (UVarEnv createVar) = ""
--- processingGraph (VarEnv createVar createVars) = ""
-
-processingQuery :: Query -> String
-processingQuery (NewQuery q) = (processingQwithF q)
-processingQuery (WhereQuery q createVars) = (processingQwithF q)
-
-processingQwithF :: QueryWithFile -> String
-processingQwithF (FuncStack f s) = (processingFunc f)++s++"\n"
-processingQwithF (FuncStackSeq f s q) = (processingFunc f)++s++"\n"++(processingSimpleQ q)
-
-processingSimpleQ :: SimpleQuery -> String
-processingSimpleQ (FuncStackB f) = (processingFunc f)
-processingSimpleQ (FuncStackBSeq f q) = (processingFunc f)++(processingSimpleQ q)
-
--- processingGraph (Always act) = ""
--- processingGraph (ActionSeq act1 act2) = ""
--- processingGraph (If b cond1 cond2) = ""
-
--- processingGraph (AssignSubj subj url) = ""
--- processingGraph (AssignPred pred url) = ""
--- processingGraph (AssignObjUrl obj url) = ""
--- processingGraph (AssignObjStr obj str) = ""
--- processingGraph (AssignObjInt obj int) = ""
--- processingGraph (AssignObjBool obj bool) = ""
-
--- processingGraph (BidirectJoin) = ""
--- processingGraph (LeftJoin) = ""
--- processingGraph (RightJoin) = ""
-
--- processingGraph (SimpleUrl url) = ""
--- processingGraph (UrlSeq url urlList) = ""
-
--- processingGraph (Any) = ""
--- processingGraph (FilteredList urlList) = "" 
-
--- processingGraph (IntLit exp) = ""
--- processingGraph (BoolLit exp) = ""
--- processingGraph (StrLit exp) = ""
--- processingGraph (AnyLit) = ""
-
-processingFunc :: Func -> String
-processingFunc (Map cond) = ""
-processingFunc (Union slist) = (processingSlist slist)
-processingFunc (NormalJoin node1 node2 slist) = (processingSlist slist)
-processingFunc (Join option node1 node2 slist) = (processingSlist slist)
-processingFunc (Filter filter1 filter2 literal) = ""
-
 }
-
-
-
-
-
--- main :: IO()
--- main = do 
---         contents <- readFile "foo.ttl"
---         let tokens = alexScanTokens contents
---         print(tokens)
---         let expression = parseQuery tokens
---         print(expression)
-        -- print(head(getExp (modify expression (Base(FinalUrl "")) []) 1))
--- } 
-------------------------------------------------------------------------------------------

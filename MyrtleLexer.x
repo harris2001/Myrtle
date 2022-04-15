@@ -46,8 +46,8 @@ $white+       ;
   where          { tok (\p s -> TokenWhere p) }
   and            { tok (\p s -> TokenAnd p) }
   or             { tok (\p s -> TokenOr p) }
-  \" [$printable # \"]+.tll\"                                { tok (\p s -> TokenFilename p (removeQuot s)) }
-  \' [$printable # \']+.tll\'                                { tok (\p s -> TokenFilename p (removeQuot s)) }
+  \" [$printable # \"]+.ttl\"                                { tok (\p s -> TokenFilename p (removeQuot s)) }
+  \' [$printable # \']+.ttl\'                                { tok (\p s -> TokenFilename p (removeQuot s)) }
   $alpha [$alpha $digit \_ \’]*                              { \p s -> TokenVar p s }
   \" [$printable # \"]+ \"                                   { tok (\p s -> TokenString p (removeQuot s)) }
   \' [$printable # \']+ \'                                   { tok (\p s -> TokenString p (removeQuot s)) }

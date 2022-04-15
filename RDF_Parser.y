@@ -9,12 +9,11 @@ import System.Environment
 %tokentype { Token } 
 %error { parseError }
 %token 
-  "."           {TokenDot _ }
-  ":"           {TokenColon _ }
-  ","           {TokenComa _ }
-  ";"           {TokenSemiColon _ }
+  '.'           {TokenDot _ }
+  ':'           {TokenColon _ }
+  ','           {TokenComa _ }
+  ';'           {TokenSemiColon _ }
   string        {TokenString _ $$ }
-  variable      {TokenVariable _ $$ }
   url           {TokenUrl _ $$ }
   unbasedUrl    {TokenUnbasedUrl _ $$ }
   unprefixedUrl {TokenUnprefixedUrl _ $$ }
@@ -23,31 +22,31 @@ import System.Environment
   prefix        {TokenPrefix _ }
   base          {TokenBase _ }
   number        {TokenNumber _ $$}
+  var           { TokenVar _ $$ }
 
-%left "," ";" "."
+%left ',' ';' '.'
 %% 
 
-TTLGraph : Subject PredicateObject                    { Triplet $1 $2 }
-    | base Url                                   { Base $2 }
-    | prefix variable ":" Url                    { Prefix $2 $4 }
-    | TTLGraph "." TTLGraph                                { Seq $1 $3 }
-    | TTLGraph "."                                    { $1 }
+TTLGraph : TTLSubject PredicateObject               { Triplet $1 $2 }
+    | base Url                                      { Base $2 }
+    | prefix var ':' Url                            { Prefix $2 $4 }
+    | TTLGraph '.' TTLGraph                         { Seq $1 $3 }
+    | TTLGraph '.'                                  { $1 }
 
-Subject : Url                                    { Sbj $1 }
+TTLSubject : Url                                    { Sbj $1 }
 
-Predicate : Url                                  { Pred $1 }
+TTLPredicate : Url                                  { TTLPred $1 }
 
-PredicateObject: Predicate Object                                 { PredObj $1 $2 }
-               | PredicateObject ";" PredicateObject        { PredObjList $1 $3 }    
+PredicateObject: TTLPredicate TTLObject                           { PredObj $1 $2 }
+               | PredicateObject ';' PredicateObject           { PredObjList $1 $3 }    
 
-Object : Url                            { UrlObj $1 }
+TTLObject : Url                         { UrlObj $1 }
        | number                         { IntObj $1 }
-       | Boolean                        { BoolObj $1 }
+       | true                           { TTLBoolObj True }
+       | false                          { TTLBoolObj False }
        | string                         { StrObj $1 }
-       | Object "," Object              { ObjList $1 $3 }
+       | TTLObject ',' TTLObject        { ObjList $1 $3 }
 
-Boolean : true                          { BTrue }
-        | false                         { BFalse }
 
 Url : url                               { FinalUrl $1 }
     | unbasedUrl                        { BaseNeededUrl ("<@base:"++(tail $1))}
@@ -60,10 +59,6 @@ Url : url                               { FinalUrl $1 }
 parseError :: [Token] -> a
 parseError ((TokenDot (AlexPn _ x y)) : xs) = error (printing x y)
 parseError ((TokenColon (AlexPn _ x y)) : xs) = error (printing x y)
-parseError ((TokenComa (AlexPn _ x y)) : xs) = error (printing x y)
-parseError ((TokenSemiColon (AlexPn _ x y)) : xs) = error (printing x y)
-parseError ((TokenString (AlexPn _ x y) _ ) : xs) = error (printing x y)
-parseError ((TokenVariable (AlexPn _ x y) _ ) : xs) = error (printing x y)
 parseError ((TokenUrl (AlexPn _ x y) _ ) : xs) = error (printing x y)
 parseError ((TokenUnbasedUrl (AlexPn _ x y) _ ) : xs) = error (printing x y)
 parseError ((TokenUnprefixedUrl (AlexPn _ x y) _ ) : xs) = error (printing x y)
@@ -73,6 +68,11 @@ parseError ((TokenPrefix (AlexPn _ x y)) : xs) = error (printing x y)
 parseError ((TokenBase (AlexPn _ x y)) : xs) = error (printing x y)
 parseError ((TokenNumber (AlexPn _ x y) _ ) : xs) = error (printing x y)
 
+parseError ((TokenComa (AlexPn _ x y)) : xs) = error (printing x y)
+parseError ((TokenSemiColon (AlexPn _ x y)) : xs) = error (printing x y)
+parseError ((TokenString (AlexPn _ x y) _ ) : xs) = error (printing x y)
+parseError ((TokenVar (AlexPn _ x y) _ ) : xs) = error (printing x y)
+
 printing x y = "Issue in row: "++show x ++ ", column:" ++ show y
 
 
@@ -81,26 +81,25 @@ printing x y = "Issue in row: "++show x ++ ", column:" ++ show y
 data Url =  FinalUrl String | BaseNeededUrl String | PrefixNeededUrl String
     deriving Show
 
-data Subject = Sbj Url
+data TTLSubject = Sbj Url
     deriving Show
 
-data Predicate = Pred Url
+data TTLPredicate = TTLPred Url
     deriving Show
 
-data Object = UrlObj Url | IntObj Int | BoolObj Boolean | StrObj String | ObjList Object Object
+data TTLObject = UrlObj Url | IntObj Int | TTLBoolObj Bool | StrObj String | ObjList TTLObject TTLObject
     deriving Show
 
-data PredicateObject = PredObj Predicate Object | PredObjList PredicateObject PredicateObject
+data PredicateObject = PredObj TTLPredicate TTLObject | PredObjList PredicateObject PredicateObject
     deriving Show
 
-data Boolean = BTrue | BFalse
-    deriving Show
-
-data TTLGraph = Triplet Subject PredicateObject
+data TTLGraph = Triplet TTLSubject PredicateObject
          | Base Url
          | Prefix String Url
          | Seq TTLGraph TTLGraph
       deriving Show
+
+
 
 -- Returns the string value of the Url datatype
 getUrl ::  Url -> String
@@ -144,23 +143,29 @@ getExp (exp, base, prefixes) option | option==1 = [exp]
 
 -- Applies the modify function to PredicateObject datatype
 modifyPredObj :: PredicateObject -> TTLGraph -> [TTLGraph] -> PredicateObject
-modifyPredObj (PredObj (Pred p) obj) b ps = (PredObj(Pred(rebaseUrl p b ps))(modifyObj obj b ps))
+modifyPredObj (PredObj (TTLPred p) obj) b ps = (PredObj(TTLPred(rebaseUrl p b ps))(modifyObj obj b ps))
 modifyPredObj (PredObjList p1 p2) b ps = (PredObjList (modifyPredObj p1 b ps) (modifyPredObj p2 b ps))
 
 
 -- Rebases Objects (only changes urlObj)
-modifyObj :: Object -> TTLGraph -> [TTLGraph] -> Object
+modifyObj :: TTLObject -> TTLGraph -> [TTLGraph] -> TTLObject
 modifyObj (ObjList obj1 obj2) b ps = (ObjList (modifyObj obj1 b ps)(modifyObj obj2 b ps))
 modifyObj (UrlObj url) b ps = (UrlObj (rebaseUrl url b ps))
 modifyObj u b ps = u
 
 
-main :: IO()
-main = do 
-        contents <- readFile "foo.ttl"
-        let tokens = alexScanTokens contents
-        -- print(tokens)
-        let expression = parserTurtle tokens
-        -- print(expression)
-        print(head(getExp (modify expression (Base(FinalUrl "")) []) 1))
+
+
+
+
+
+
+parsing :: String -> IO(TTLGraph)
+parsing str = do 
+                 contents <- readFile str
+                 let tokens = alexScanTokens contents
+                 -- print(tokens)
+                 let expression = parserTurtle tokens
+                --  print(expression)
+                 return (head(getExp (modify expression (Base(FinalUrl "")) []) 1))
 } 
