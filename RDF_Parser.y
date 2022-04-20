@@ -154,12 +154,6 @@ modifyObj (UrlObj url) b ps = (UrlObj (rebaseUrl url b ps))
 modifyObj u b ps = u
 
 
-
-
-
-
-
-
 parsing :: String -> IO(TTLGraph)
 parsing str = do 
                  contents <- readFile str
@@ -168,4 +162,43 @@ parsing str = do
                  let expression = parserTurtle tokens
                 --  print(expression)
                  return (head(getExp (modify expression (Base(FinalUrl "")) []) 1))
+
+-- Prints ttl file as readable text
+
+printerUrl :: Url -> String
+printerUrl (FinalUrl url) = (url++" ")
+printerUrl (BaseNeededUrl url) = (url++" ")
+printerUrl (PrefixNeededUrl url) = (url++" ")
+
+printerTTLSubject :: TTLSubject -> String
+printerTTLSubject  (Sbj url) = printerUrl url
+
+printerTTLPredicate :: TTLPredicate -> String
+printerTTLPredicate  (TTLPred url) = printerUrl url
+
+printerTTLObject :: TTLObject -> String
+printerTTLObject (UrlObj url) = printerUrl url 
+printerTTLObject (IntObj int) = (show int++" ") 
+printerTTLObject (TTLBoolObj True) = "true "
+printerTTLObject (TTLBoolObj False) = "false "
+printerTTLObject (StrObj str) = (str++" ") 
+printerTTLObject (ObjList obj1 obj2) = (printerTTLObject obj1)++", "++(printerTTLObject obj2)
+
+printerPredicateObject :: PredicateObject -> String
+printerPredicateObject (PredObj pred obj) = (printerTTLPredicate pred)++(printerTTLObject obj)
+printerPredicateObject (PredObjList predobj1 predobj2) = (printerPredicateObject predobj1)++"; "++printerPredicateObject predobj2
+
+printerTTLGraph :: TTLGraph -> String
+printerTTLGraph  (Triplet subj predobj) = (printerTTLSubject subj)++(printerPredicateObject predobj)
+
+printerTTLGraph (Base url) = ""
+printerTTLGraph (Prefix str url) = ""
+printerTTLGraph (Seq graph1 graph2) = printerTTLGraph graph1 ++
+                                      if x/= ""
+                                        then
+                                            x++".\n"
+                                        else
+                                            x                                   
+    where x = printerTTLGraph graph2
+
 } 

@@ -47,15 +47,7 @@ import Data.List
   and            { TokenAnd _ }
   or             { TokenOr _ }
   var            { TokenVar _ $$ }
-  --
-  '.'            {TokenDot _ }
-  ';'            {TokenSemiColon _ }
   url            {TokenUrl _ $$ }
-  unbasedUrl     {TokenUnbasedUrl _ $$ }
-  unprefixedUrl  {TokenUnprefixedUrl _ $$ }
-  prefix         {TokenPrefix _ }
-  base           {TokenBase _ }
---   number        {TokenNumber _ $$}
 
 %left "," ";" "."
 %left '='
@@ -251,46 +243,6 @@ Object : obj                                          { Obj }
 -- Creates a url data object
 Url : url                                             { NewUrl $1 }
 
-
-
-
-
-
-
-
-
-
--- TTLGraph : TTLSubject PredicateObject               { Triplet $1 $2 }
---     | base Url                                      { Base $2 }
---     | prefix var ':' Url                            { Prefix $2 $4 }
---     | TTLGraph '.' TTLGraph                         { Seq $1 $3 }
---     | TTLGraph '.'                                  { $1 }
-
--- TTLSubject : Url                                    { Sbj $1 }
-
--- TTLPredicate : Url                                  { TTLPred $1 }
-
--- PredicateObject: TTLPredicate TTLObject                           { PredObj $1 $2 }
---                | PredicateObject ';' PredicateObject           { PredObjList $1 $3 }    
-
--- TTLObject : Url                         { UrlObj $1 }
---        | int                            { IntObj $1 }
---        | '-' int                        { IntObj (-$2) }
---        | true                           { TTLBoolObj True }
---        | false                          { TTLBoolObj False }
---        | string                         { StrObj $1 }
---        | TTLObject ',' TTLObject        { ObjList $1 $3 }
-
-
--- Url : url                               { FinalUrl $1 }
---     | unbasedUrl                        { BaseNeededUrl ("<@base:"++(tail $1))}
---     | unprefixedUrl                     { PrefixNeededUrl ("<"++$1++">") }
-
-
-
-
-
-
 {
 parseError :: [LangToken] -> a
 
@@ -329,55 +281,10 @@ parseError ((TokenWhere (AlexPn _ l c)) : xs) = error (printing l c)
 parseError ((TokenAnd (AlexPn _ l c)) : xs) = error (printing l c)
 parseError ((TokenOr (AlexPn _ l c))  : xs) = error (printing l c)
 parseError ((TokenVar (AlexPn _ l c) _ )  : xs) = error (printing l c)
---
--- parseError ((TokenDot (AlexPn _ x y)) : xs) = error (printing x y)
--- parseError ((TokenSemiColon (AlexPn _ x y)) : xs) = error (printing x y)
--- parseError ((TokenUrl (AlexPn _ x y) _ ) : xs) = error (printing x y)
--- parseError ((TokenUnbasedUrl (AlexPn _ x y) _ ) : xs) = error (printing x y)
--- parseError ((TokenUnprefixedUrl (AlexPn _ x y) _ ) : xs) = error (printing x y)
--- parseError ((TokenTrue (AlexPn _ x y)) : xs) = error (printing x y)
--- parseError ((TokenFalse (AlexPn _ x y)) : xs) = error (printing x y)
--- parseError ((TokenPrefix (AlexPn _ x y)) : xs) = error (printing x y)
--- parseError ((TokenBase (AlexPn _ x y)) : xs) = error (printing x y)
--- parseError ((TokenNumber (AlexPn _ x y) _ ) : xs) = error (printing x y)
--- parseError ((TokenFilename (AlexPn _ x y) _ ) : xs) = error (printing x y)
 
 parseError [] = error "Missing output file"
 
 printing x y = "Issue in row: "++show x ++ ", column:" ++ show y
-
-
--- A url datatype holds all three possible types of urls
--- Final, BaseNeeded and PrefixNeeded Url
--- data Url =  FinalUrl String | BaseNeededUrl String | PrefixNeededUrl String
---     deriving Show
-
--- data TTLSubject = Sbj Url
---     deriving Show
-
--- data TTLPredicate = TTLPred Url
---     deriving Show
-
--- data TTLObject = UrlObj Url | IntObj Int | TTLBoolObj Bool | StrObj String | ObjList TTLObject TTLObject
---     deriving Show
-
--- data PredicateObject = PredObj TTLPredicate TTLObject | PredObjList PredicateObject PredicateObject
---     deriving Show
-
--- data Boolean = BTrue | BFalse
---     deriving Show
-
--- data TTLGraph = Triplet TTLSubject PredicateObject
---          | Base Url
---          | Prefix String Url
---          | Seq TTLGraph TTLGraph
---       deriving Show
-
-
-
-
-
-
 
 data Subject = Subj
      deriving Show

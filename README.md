@@ -1,5 +1,5 @@
 # Myrtle lang
-![Myrtle](MyrtleLang.png)
+![Myrtle](Resources/Images/MyrtleLang.png)
 # PLC-Coursework
 ## What is this?
 This is a Haskell interpreter that can be used to query data from the provided RDF files 
@@ -30,7 +30,7 @@ union ["foo.tll",'testing.tll'] "foo.tll"
 #### Step 4: 
 > Run parser with runghc command and provide the file where you have written your code as an argument
 ```
-$ runghc Run.hs script.q
+$ runghc Main.hs script.q
 ```
 
 
@@ -120,7 +120,8 @@ STR_EXP = \" [$printable # \"]+ \" |
 ```
 ### FUNCTIONS
 ```
-FUNCTION = map (CONDITION) | 
+FUNCTION = select (CONDITION) |
+           map (CONDITION) | 
            union SLIST |
            join {-r | -l | -l -r | -r -l } (NODE,NODE) SLIST
 ```
