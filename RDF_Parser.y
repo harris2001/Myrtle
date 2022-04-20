@@ -189,16 +189,16 @@ printerPredicateObject (PredObj pred obj) = (printerTTLPredicate pred)++(printer
 printerPredicateObject (PredObjList predobj1 predobj2) = (printerPredicateObject predobj1)++"; "++printerPredicateObject predobj2
 
 printerTTLGraph :: TTLGraph -> String
-printerTTLGraph  (Triplet subj predobj) = (printerTTLSubject subj)++(printerPredicateObject predobj)
+printerTTLGraph  (Triplet subj predobj) = (printerTTLSubject subj)++(printerPredicateObject predobj)++"."
 
 printerTTLGraph (Base url) = ""
 printerTTLGraph (Prefix str url) = ""
-printerTTLGraph (Seq graph1 graph2) = printerTTLGraph graph1 ++
-                                      if x/= ""
+printerTTLGraph (Seq graph1 graph2) = if x2 == ""
                                         then
-                                            x++".\n"
+                                            x1++x2 
                                         else
-                                            x                                   
-    where x = printerTTLGraph graph2
+                                            x1++"\n"++x2                                        
+    where x1 = printerTTLGraph graph1
+          x2 = printerTTLGraph graph2
 
 } 

@@ -1,1 +1,1 @@
-union ["foo.ttl"] "foo.ttl"
+union ["bar.ttl","foo.ttl"] "file.ttl"
