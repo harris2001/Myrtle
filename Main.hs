@@ -21,50 +21,82 @@ main = do
         -- print(tokens)
         let expression = parseQuery tokens
         -- print(expression)
-        -- let ttlFiles = uniq (processingQuery expression)
-        -- let rdf_parsed = rdf_parses ttlFiles
-        -- -- Tuple (filename,TTLGraph)
-
-        -- print(fst(head(rdf_parsed)))
-        -- do 
-        --    out <- snd (head (rdf_parsed ))
-        --    print(printerTTLGraph out)
-        toWrite <- processQuery expression
-        print toWrite
+        evalQuery expression
         
+---------------------------------------------------------------------------------
+-------------------------------- Helper datatypes -------------------------------
+---------------------------------------------------------------------------------
+
+data Assignment = IntVarAss IntExp | BoolVarAss BoolExp | StringVarAss StringExp
+
+type Env = (String,Assignment)
 
 ---------------------------------------------------------------------------------
 -------------------------------- Helper functions -------------------------------
 ---------------------------------------------------------------------------------
 
+-- Print query result or write it in file
+evalQuery :: Query -> IO ()
+evalQuery (OutputQuery q) = do triplets <-(evalFilteredQ q)
+                               putStr (sortTriplets triplets)
+evalQuery (WriteQuery q f) = do triplets <-(evalFilteredQ q)
+                                writeFile f (sortTriplets triplets)
 
-processQuery :: Query -> IO ()
-processQuery (NewQuery q) = (processQwithF q)
-processQuery (WhereQuery q createVars) = (processQwithF q)
+evalFilteredQ :: FilteredQuery -> IO ([TTLTriplet])
+evalFilteredQ (NewQuery q) = evalSimpleQ q [] []
+evalFilteredQ (WhereQuery q w) = do let env = assign_vars w
+                                    evalSimpleQ q [] env
 
-processQwithF :: QueryWithFile -> IO ()
-processQwithF (FuncStack f s) = (processFunc f s)
-processQwithF (FuncStackSeq f s q) = do processFunc f s
-                                        print "\n"
-                                        processSimpleQ q s
+-- Eval loop
+evalSimpleQ :: BasicQuery -> [TTLTriplet] -> [Env] -> IO ([TTLTriplet])
+evalSimpleQ (FuncStack f) tri env = (evalFunc f tri env)
+evalSimpleQ (FuncStackSeq f q) tri env = do result <- (evalFunc f tri env)
+                                            evalSimpleQ q result env
 
-processSimpleQ :: SimpleQuery -> String -> IO ()
-processSimpleQ (FuncStackB f) outFile = (processFunc f outFile)
-processSimpleQ (FuncStackBSeq f q) outFile = do processFunc f outFile
-                                                print "\n"
-                                                processSimpleQ q outFile
+evalFunc :: Func -> [TTLTriplet] -> [Env] -> IO ([TTLTriplet])
+evalFunc (Union slist) tri _ = do graphs <- (return_rdf (uniq (processingSlist slist)))
+                                  return (union_backend ([tri]++graphs))
 
-processFunc :: Func -> String -> IO ()
-processFunc (Union slist) outFile = do y<-print_rdf (uniq (processingSlist slist))
-                                       writeFile outFile y
+-- processFunc (Map cnd)
                                
-
+-- Takes a list of turtle files and prints them
 print_rdf :: [String] -> IO String
 print_rdf [] = return ""
 print_rdf (x:xs) = do graph <-parsing x
-                      do let y=printerTTLGraph graph
+                      do let y=printerTTLGraph (returnTTLGraph graph)
                          ys<-print_rdf xs
                          return (y++"\n"++ys)
+
+-- Takes a list of turtle files and returns a list of graphs in the form of triplet lists
+return_rdf :: [String] -> IO ([[TTLTriplet]])
+return_rdf [] = return [[]]
+-- return_rdf (x:xs) = return [[Triplet (Sbj (FinalUrl "s"))(TTLPred (FinalUrl "p"))(UrlObj (FinalUrl "o"))]]
+return_rdf (x:xs) = do graph <- (parsing x)
+                       do let y=returnTTLGraph graph
+                          ys<-return_rdf xs
+                          return ([y]++ys)
+                --        return [[Triplet (Sbj (FinalUrl "s"))(PredObj (TTLPred (FinalUrl "p"))(UrlObj (FinalUrl "o")))]]
+
+assign_vars :: CreateVars -> [Env]
+assign_vars (UVarEnv var) = [assign_var var]
+assign_vars (VarEnv var vars) = [assign_var var] ++ assign_vars vars
+
+assign_var :: CreateVar -> Env
+assign_var (IntVar str int) = (str,IntVarAss int)
+assign_var (BoolVar str bool) = (str,BoolVarAss bool)
+assign_var (StringVar str str2) = (str,StringVarAss str2)
+
+-- Union_Backend: Combines [[TTLTriplet]] together to a single [Triplet]
+union_backend :: [[TTLTriplet]] -> [TTLTriplet]
+union_backend [] = error "Slist is empty"
+union_backend [[]] = []
+union_backend (x:xs) = x++union_backend xs
+
+
+
+sortTriplets :: [TTLTriplet]-> String
+sortTriplets graph = printerTTLGraph graph --unzipSList(sort(map returnTTLGraph graph))
+
 
 
 -- Takes a character and a string (and an empty list) and returns the string as
@@ -83,6 +115,8 @@ uniq str = nub (splitOn '#' (reverse(tail(reverse(str)))) [""])
 rdf_parses :: [String] -> [(String, IO TTLGraph)]
 rdf_parses (x:xs) = [(x,parsing x)]++rdf_parses xs
 
+unzipSList :: [String] -> String
+unzipSList (x:xs) = x++"\n"++(unzipSList xs)
 -------------------------------------------------------------------------------
 ------------------------------------ START ------------------------------------
 -- Series of functions that parse the query and find all rdf files in it
@@ -170,17 +204,17 @@ processingSlistElem(SListSeq str elems) = str++"#"++(processingSlistElem elems)
                                         
 -------------------------------- Beginning
 
-processingQuery :: Query -> String
-processingQuery (NewQuery q) = (processingQwithF q)
-processingQuery (WhereQuery q createVars) = (processingQwithF q)
-
-processingQwithF :: QueryWithFile -> String
-processingQwithF (FuncStack f s) = (processingFunc f)++s++"#"
-processingQwithF (FuncStackSeq f s q) = (processingFunc f)++s++"#"++(processingSimpleQ q)
-
-processingSimpleQ :: SimpleQuery -> String
-processingSimpleQ (FuncStackB f) = (processingFunc f)
-processingSimpleQ (FuncStackBSeq f q) = (processingFunc f)++(processingSimpleQ q)
+                        -- processingQuery :: Query -> String
+                        -- processingQuery (NewQuery q) = (processingFilteredQ q)
+                        -- processingQuery (WhereQuery q createVars) = (processingFilteredQ q)
+                        -- 
+                        -- processingFilteredQ :: FilteredQuery -> String
+                        -- processingFilteredQ (NewQuery q) = (processingFunc f)++s++"#"
+                        -- processingFilteredQ (WhereQuery q w) = (processingFunc f)++s++"#"++(processingBasicQ q)
+                        -- 
+                        -- processingBasicQ :: BasicQuery -> String
+                        -- processingBasicQ (FuncStack f) = (processingFunc f)
+                        -- processingBasicQ (FuncStackSeq f q) = (processingFunc f)++(processingBasicQ q)
 
 -- processingGraph (Always act) = ""
 -- processingGraph (ActionSeq act1 act2) = ""
@@ -208,12 +242,12 @@ processingSimpleQ (FuncStackBSeq f q) = (processingFunc f)++(processingSimpleQ q
 -- processingGraph (StrLit exp) = ""
 -- processingGraph (AnyLit) = ""
 
-processingFunc :: Func -> String
-processingFunc (Map cond) = ""
-processingFunc (Union slist) = (processingSlist slist)
-processingFunc (NormalJoin node1 node2 slist) = (processingSlist slist)
-processingFunc (Join option node1 node2 slist) = (processingSlist slist)
-processingFunc (Filter filter1 filter2 literal) = ""
+                        -- processingFunc :: Func -> String
+                        -- processingFunc (Map cond) = ""
+                        -- processingFunc (Union slist) = (processingSlist slist)
+                        -- processingFunc (NormalJoin node1 node2 slist) = (processingSlist slist)
+                        -- processingFunc (Join option node1 node2 slist) = (processingSlist slist)
+                        -- processingFunc (Filter filter1 filter2 literal) = ""
 
 ------------------------------------ END --------------------------------------
 -------------------------------------------------------------------------------

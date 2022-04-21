@@ -27,11 +27,13 @@ import System.Environment
 %left ',' ';' '.'
 %% 
 
-TTLGraph : TTLSubject PredicateObject               { Triplet $1 $2 }
-    | base Url                                      { Base $2 }
-    | prefix var ':' Url                            { Prefix $2 $4 }
-    | TTLGraph '.' TTLGraph                         { Seq $1 $3 }
-    | TTLGraph '.'                                  { $1 }
+TTLGraph : TTLTriplet                                    { GraphTriplet $1 }
+         | base Url                                      { Base $2 }
+         | prefix var ':' Url                            { Prefix $2 $4 }
+         | TTLGraph '.' TTLGraph                         { Seq $1 $3 }
+         | TTLGraph '.'                                  { $1 }
+
+TTLTriplet : TTLSubject PredicateObject                  { Triplet $1 $2 }
 
 TTLSubject : Url                                    { Sbj $1 }
 
@@ -93,13 +95,14 @@ data TTLObject = UrlObj Url | IntObj Int | TTLBoolObj Bool | StrObj String | Obj
 data PredicateObject = PredObj TTLPredicate TTLObject | PredObjList PredicateObject PredicateObject
     deriving Show
 
-data TTLGraph = Triplet TTLSubject PredicateObject
+data TTLGraph = GraphTriplet TTLTriplet
          | Base Url
          | Prefix String Url
          | Seq TTLGraph TTLGraph
       deriving Show
 
-
+data TTLTriplet = Triplet TTLSubject PredicateObject
+    deriving Show
 
 -- Returns the string value of the Url datatype
 getUrl ::  Url -> String
@@ -123,7 +126,7 @@ modify (Base base) b ps = (Base base, Base base, ps)
 modify pref@(Prefix s u@(FinalUrl url)) b ps = ((Prefix s u), b, (ps++[pref]))
 modify pref@(Prefix s url) b ps = ((Prefix s uu), b, (ps++[Prefix s uu]))
     where uu = (rebaseUrl url b ps)
-modify (Triplet (Sbj subj) predObj) b ps = ((Triplet (Sbj (rebaseUrl subj b ps)) (modifyPredObj predObj b ps)), b, ps)
+modify (GraphTriplet(Triplet (Sbj subj) predObj)) b ps = (GraphTriplet(Triplet (Sbj (rebaseUrl subj b ps)) (modifyPredObj predObj b ps)), b, ps)
 modify (Seq exp1 exp2) b ps = ((Seq exp11 exp22), base2, prefixes2)
             where e1 = getExp (modify exp1 b ps)
                   exp11 = head (e1 1)
@@ -153,7 +156,7 @@ modifyObj (ObjList obj1 obj2) b ps = (ObjList (modifyObj obj1 b ps)(modifyObj ob
 modifyObj (UrlObj url) b ps = (UrlObj (rebaseUrl url b ps))
 modifyObj u b ps = u
 
-
+-- Gets the filename and returns the parsed graph
 parsing :: String -> IO(TTLGraph)
 parsing str = do 
                  contents <- readFile str
@@ -163,7 +166,8 @@ parsing str = do
                 --  print(expression)
                  return (head(getExp (modify expression (Base(FinalUrl "")) []) 1))
 
--- Prints ttl file as readable text
+-------------------------------------
+-- Prints ttl file as readable text--
 
 printerUrl :: Url -> String
 printerUrl (FinalUrl url) = (url++" ")
@@ -188,17 +192,47 @@ printerPredicateObject :: PredicateObject -> String
 printerPredicateObject (PredObj pred obj) = (printerTTLPredicate pred)++(printerTTLObject obj)
 printerPredicateObject (PredObjList predobj1 predobj2) = (printerPredicateObject predobj1)++"; "++printerPredicateObject predobj2
 
-printerTTLGraph :: TTLGraph -> String
-printerTTLGraph  (Triplet subj predobj) = (printerTTLSubject subj)++(printerPredicateObject predobj)++"."
+-- printerTTLGraph :: TTLGraph -> String
+-- printerTTLGraph  (GraphTriplet(Triplet subj predobj)) = (printerTTLSubject subj)++(printerPredicateObject predobj)++"."
 
-printerTTLGraph (Base url) = ""
-printerTTLGraph (Prefix str url) = ""
-printerTTLGraph (Seq graph1 graph2) = if x2 == ""
-                                        then
-                                            x1++x2 
-                                        else
-                                            x1++"\n"++x2                                        
-    where x1 = printerTTLGraph graph1
-          x2 = printerTTLGraph graph2
+-- printerTTLGraph (Base url) = ""
+-- printerTTLGraph (Prefix str url) = ""
+-- printerTTLGraph (Seq graph1 graph2) = if x2 == ""
+--                                         then
+--                                             x1++x2 
+--                                         else
+--                                             x1++"\n"++x2                                        
+--     where x1 = printerTTLGraph graph1
+--           x2 = printerTTLGraph graph2
 
-} 
+
+printerTTLGraph :: [TTLTriplet] -> String
+printerTTLGraph [] = ""
+printerTTLGraph ((Triplet subj predobj) : triplets) = (printerTTLSubject subj)++(printerPredicateObject predobj)
+                                                      ++".\n"
+                                                      ++printerTTLGraph triplets
+          
+----------------------------------------------------------------------------------------------------------------------------------
+-- Returns a ttl graph as a list of triplets (better for mapping functions on triplets rather than traversing the TTLGraph tree)
+
+returnTTLGraph :: TTLGraph -> [TTLTriplet]
+returnTTLGraph (Base _) = []
+returnTTLGraph (Prefix _ _) = []
+returnTTLGraph (Seq graph1 graph2) = (returnTTLGraph graph1) ++ (returnTTLGraph graph2)
+returnTTLGraph (GraphTriplet tr@(Triplet subj predobj)) = returnTTLTriplet tr
+
+--Splits a complex triplet to a list of simple triplets
+returnTTLTriplet :: TTLTriplet -> [TTLTriplet]
+returnTTLTriplet (Triplet s predObj) = [Triplet s pObj |pObj <-returnTTLPredObj predObj]
+
+--Splits an PredObjectList to a list of PredicateObjects
+returnTTLPredObj :: PredicateObject -> [PredicateObject]
+returnTTLPredObj (PredObj pred object) = [PredObj pred obj | obj<-returnTTLObj object]
+returnTTLPredObj (PredObjList predObj1 predObj2) = (returnTTLPredObj predObj1)++(returnTTLPredObj predObj2) 
+
+-- Splits an ObjectList to a list of Objects
+returnTTLObj :: TTLObject -> [TTLObject]
+returnTTLObj (ObjList obj1 obj2) = (returnTTLObj obj1)++(returnTTLObj obj2)
+returnTTLObj obj = [obj]
+
+}
