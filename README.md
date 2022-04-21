@@ -38,14 +38,15 @@ $ runghc Main.hs script.q
 ## Language Specification:
 ### BNF
 ```
-QUERY = QUERY_WITH_FILE |
-        QUERY_WITH_FILE where VAR_ASSIGNMENTS
 
-QUERY_WITH_FILE = FUNCTION FILE |
-                  FUNCTION FILE '|' SIMPLE_QUERY
+QUERY = FILTERED_QUERY ">>" FILE |
+        FILTERED QUERY
 
-SIMPLE_QUERY = FUNCTION |
-               FUNCTION '|' SIMPLE_QUERY
+FILTERED_QUERY = BASIC_QUERY |
+                 QUERY_WITH_FILE where VAR_ASSIGNMENTS
+
+BASIC_QUERY = FUNCTION |
+               FUNCTION '|' BASIC_QUERY
 
 FUNCTIONS (Defined bellow)
 

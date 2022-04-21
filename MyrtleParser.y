@@ -56,25 +56,24 @@ import Data.List
 %left '^'
 %left NEG 
 %left deq
+%right '>'
 %% 
 
 -- DONE --
--- A query has the following syntax:
--- fun1 "input.ttl" where var = ...
--- or
--- fun1 "input.ttl" | fun2 | fun3 where var = ...
-Query : QueryWithFile                                       { NewQuery $1 }
-      | QueryWithFile where CreateVars                      { WhereQuery $1 $3 }
+-- Is the entry point of the myrtle script
+-- The user can choose to either print the output of his/her query or save it in a file
+Query : FilteredQuery '>''>' filename                       { WriteQuery $1 $4 }
+      | FilteredQuery                                       { OutputQuery $1 }
 
 -- DONE --
--- This is a separate rule because the input file is only put at the beginning
-QueryWithFile : Func filename                              { FuncStack $1 $2}
-              | Func filename '|' SimpleQuery              { FuncStackSeq $1 $2 $4}
+-- Is a basic query with an optional where clause
+FilteredQuery : BasicQuery                                  { NewQuery $1 }
+              | BasicQuery where CreateVars                 { WhereQuery $1 $3 }
 
 -- DONE --
 -- The following functions don't requrie an input file (unless the function is used to handle multiple files) 
-SimpleQuery : Func                                          { FuncStackB $1 }              
-            | Func '|' SimpleQuery                          { FuncStackBSeq $1 $3 }
+BasicQuery : Func                                           { FuncStack $1 }              
+           | Func '|' BasicQuery                            { FuncStackSeq $1 $3 }
 
 -- DONE --
 -- Create variables - Extra rule used to remove shift/reduce conflict
@@ -116,14 +115,14 @@ SList : '[' SListElem ']'                                   { StrList $2 }
       | filename                                            { StrListSingle $1 }
 
 -- DONE --
-SListElem : filename                                       { SListEl $1 }
-          | filename ',' SListElem                         { SListSeq $1 $3 }     
+SListElem : filename                                        { SListEl $1 }
+          | filename ',' SListElem                          { SListSeq $1 $3 }     
 
 -- Done
 -- Conditions are used for the map function
-Cond : Action                                                    { Always $1 }
-     | Action ',' Action                                         { ActionSeq $1 $3 }
-     | '('BoolExp')''?' Cond':'Cond                              { If $2 $5 $7 }
+Cond : Action                                               { Always $1 }
+     | Action ',' Action                                    { ActionSeq $1 $3 }
+     | '('BoolExp')''?' Cond':'Cond                         { If $2 $5 $7 }
 
 --DONE
 -- Actions are executed when conditions are satisfied
@@ -340,13 +339,13 @@ data CreateVar = IntVar String IntExp | BoolVar String BoolExp | StringVar Strin
 data CreateVars = UVarEnv CreateVar | VarEnv CreateVar CreateVars
      deriving Show
      
-data Query = NewQuery QueryWithFile | WhereQuery QueryWithFile CreateVars
+data Query = OutputQuery FilteredQuery | WriteQuery FilteredQuery String
      deriving Show
      
-data QueryWithFile = FuncStack Func String | FuncStackSeq Func String SimpleQuery
+data FilteredQuery = NewQuery BasicQuery | WhereQuery BasicQuery CreateVars
      deriving Show
      
-data SimpleQuery = FuncStackB Func | FuncStackBSeq Func SimpleQuery
+data BasicQuery = FuncStack Func | FuncStackSeq Func BasicQuery
      deriving Show
 
 data Cond = Always Action | ActionSeq Action Action | If BoolExp Cond Cond
