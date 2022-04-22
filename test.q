@@ -1,1 +1,1 @@
-union "foo.ttl" | union 'bar.ttl'
+union "foo.ttl" | union 'bar.ttl' | get(_, [<http://www.cw.org/testPredA>,<http://www.cw.org/testPredList>], true)

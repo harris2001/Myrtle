@@ -58,7 +58,8 @@ evalSimpleQ (FuncStackSeq f q) tri env = do result <- (evalFunc f tri env)
 evalFunc :: Func -> [TTLTriplet] -> [Env] -> IO ([TTLTriplet])
 evalFunc (Union slist) tri _ = do graphs <- (return_rdf (uniq (processingSlist slist)))
                                   return (union_backend ([tri]++graphs))
-                               
+evalFunc (Get filterSubj filterPred lit) tri env = return (filterBackend tri (filterSubj, filterPred, lit))
+
 -- Takes a list of turtle files and prints them
 print_rdf :: [String] -> IO String
 print_rdf [] = return ""
@@ -85,11 +86,37 @@ assign_var (IntVar str int) = (str,IntVarAss int)
 assign_var (BoolVar str bool) = (str,BoolVarAss bool)
 assign_var (StringVar str str2) = (str,StringVarAss str2)
 
--- Union_Backend: Combines [[TTLTriplet]] together to a single [Triplet]
+------------------------------------------------------------------------------------------------------------------
+--                                             Functions Backend                                                --
+------------------------------------------------------------------------------------------------------------------
+-- Combines [[TTLTriplet]] together to a single [Triplet]
+
+-- Union_Backend:
 union_backend :: [[TTLTriplet]] -> [TTLTriplet]
-union_backend [] = error "Slist is empty"
+union_backend [] = error "Empty list detected"
 union_backend [[]] = []
 union_backend (x:xs) = x++union_backend xs
+
+-- Filter_Backend: 
+filterBackend :: [TTLTriplet] -> (FilterEl, FilterEl, Literal) -> [TTLTriplet]
+filterBackend [] (_,_,_)= [] --error "Query GET needs to be passed a file to execute \n Specify file by SELECT FROM \"$filename.ttl\""
+filterBackend (tri@(Triplet (Sbj subj)(PredObj (TTLPred pred) obj)):xs) (s,p,o) | (((elem (getUrl subj) (filterToList s)) || (anything s)) && ((elem (getUrl pred) (filterToList p)) || (anything p)) && ((filterObject obj o) || (anything p)))  = [tri]++(filterBackend xs (s,p,o))
+                                                                              | otherwise = filterBackend xs (s,p,o)
+                                                                      
+filterObject :: TTLObject -> Literal -> Bool
+filterObject _ _ = True
+-- filterObject (UrlObj url) = 
+-- filterObject (IntObj int) = 
+-- filterObject (TTLBoolObj bool) = 
+-- filterObject (StrObj str) = 
+
+--Returns true if every subject is allowed ('_')
+anything :: FilterEl -> Bool
+anything Any = True
+anything _ = False
+
+------------------------------------------------------------------------------------------------------------------
+
 
 -- Sorting triplets in the following order:
 -- 1) Sort subj pred alphabetically

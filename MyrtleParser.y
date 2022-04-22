@@ -47,7 +47,8 @@ import Data.List
   and            { TokenAnd _ }
   or             { TokenOr _ }
   var            { TokenVar _ $$ }
-  url            {TokenUrl _ $$ }
+  url            { TokenUrl _ $$ }
+  get            { TokenGet _ }
 
 %left "," ";" "."
 %left '='
@@ -91,6 +92,7 @@ Func : filter '(' FilterEl ',' FilterEl ',' Literal ')'     { Filter $3 $5 $7 }
      | union SList                                          { Union $2 }
      | join '('Node',' Node')' SList                        { NormalJoin $3 $5 $7 }
      | join JoinOption '('Node',' Node')' SList             { Join $2 $4 $6 $8 }
+     | get '(' FilterEl ',' FilterEl ',' Literal ')'        { Get $3 $5 $7 }
      
 -- DONE
 -- The parameters allowed in the filter function
@@ -341,7 +343,7 @@ data CreateVars = UVarEnv CreateVar | VarEnv CreateVar CreateVars
      
 data Query = OutputQuery FilteredQuery | WriteQuery FilteredQuery String
      deriving Show
-     
+
 data FilteredQuery = NewQuery BasicQuery | WhereQuery BasicQuery CreateVars
      deriving Show
      
@@ -371,8 +373,20 @@ data Literal = IntLit IntExp | BoolLit BoolExp | StrLit StringExp | AnyLit
      deriving Show
 
 data Func = Map Cond | Union SList | NormalJoin Node Node SList | Join JoinOption Node Node SList |
-            Filter FilterEl FilterEl Literal
+            Filter FilterEl FilterEl Literal | Get FilterEl FilterEl Literal
      deriving Show     
 
+
+------------------------------------------------------------------------------------------------------
+--                                      Helper Functions                                            --
+------------------------------------------------------------------------------------------------------
+
+filterToList :: FilterEl -> [String]
+filterToList Any = []
+filterToList (FilteredList urlList) = urltoList urlList
+
+urltoList :: UrlList -> [String]
+urltoList (SimpleUrl (NewUrl url)) = [url]
+urltoList (UrlSeq (NewUrl url) urls) = [url] ++ urltoList urls
 
 }
