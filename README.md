@@ -126,3 +126,9 @@ FUNCTION = select (CONDITION) |
            union SLIST |
            join {-r | -l | -l -r | -r -l } (NODE,NODE) SLIST
 ```
+### EXAMPLE COMMANDS
+```
+union "foo.ttl"                                         : Prints the content of foo.ttl (sorted )
+union ["foo.ttl",'bar.ttl'] >> "out.ttl"                : Outputs the result of unioning foo & bar files in out.ttl
+union "foo.ttl" | union 'bar.ttl' >> "out.ttl"          : Exactly the same as above
+```

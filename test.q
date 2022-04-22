@@ -1,1 +1,1 @@
-union "foo.ttl" | union 'bar.ttl' | union ["bar.ttl","foo.ttl"]
+union "foo.ttl" | union 'bar.ttl'
