@@ -80,6 +80,7 @@ evalFunc :: Func -> [TTLTriplet] -> [Env] -> IO ([TTLTriplet])
 evalFunc (Union slist) tri _ = do graphs <- (return_rdf (uniq (processingSlist slist)))
                                   return (union_backend ([tri]++graphs))
 evalFunc (Get filterSubj filterPred list) tri env = return (filterBackend tri (filterSubj, filterPred, list))
+evalFunc (Map cond) tri env = return (mapBackend tri cond env)
 
 -- Takes a list of turtle files and prints them
 print_rdf :: [String] -> IO String
@@ -137,6 +138,22 @@ filterObject obj@(IntObj int) (BoolLit boolexp) = (evalBoolObj boolexp[]) obj
 filterObject obj@(TTLBoolObj bool) (BoolLit boolexp) = (evalBoolObj boolexp[]) obj
 filterObject obj@(StrObj str) (StrLit str2)= str == (evalSimpleStr str2 []) 
 filterObject _ _ = False
+
+-- Map_Backend:
+mapBackend :: [TTLTriplet] -> Cond -> [Env] -> [TTLTriplet]
+mapBackend graph cond env = map (evalCond cond env) graph
+
+evalCond :: Cond -> [Env] -> TTLTriplet -> TTLTriplet
+evalCond (Always (AssignSubj _ (NewUrl url))) _ (Triplet _ po) = Triplet (Sbj (FinalUrl url)) po
+evalCond (Always (AssignPred _ (NewUrl url))) _ (Triplet s (PredObj _ o)) = Triplet s (PredObj (TTLPred (FinalUrl url)) o)
+evalCond (Always (AssignObjUrl _ (NewUrl url))) _ (Triplet s (PredObj p _)) = Triplet s (PredObj p (UrlObj (FinalUrl url)))
+evalCond (Always (AssignObjStr _ (QString str))) _ (Triplet s (PredObj p _)) = Triplet s (PredObj p (StrObj str))
+evalCond (Always (AssignObjInt _ intexp)) env (Triplet s (PredObj p o)) = Triplet s (PredObj p (IntObj (evalIntExp intexp env o)))
+evalCond (Always (AssignObjBool _ boolexp)) env (Triplet s (PredObj p o)) = Triplet s (PredObj p (TTLBoolObj (evalBoolObj boolexp env o)))
+-- evalCond (ActionSeq action cond) env triplet = evalCond cond env $ evalCond (Always action) env triplet
+evalCond (If boolexp condTrue condFalse) env t@(Triplet _ (PredObj _ o)) | evalBoolObj boolexp env o = evalCond condTrue env t
+                                                                         | otherwise = evalCond condFalse env t
+evalCond _ _ triplet = triplet
 
 --Returns true if every subject is allowed ('_')
 anything :: FilterEl -> Bool

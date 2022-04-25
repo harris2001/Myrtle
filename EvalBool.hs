@@ -1,5 +1,4 @@
 module EvalBool where
--- import EvalInt
 import MyrtleParser
 import RDF_Parser
 

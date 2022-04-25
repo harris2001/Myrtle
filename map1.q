@@ -1,0 +1,1 @@
+map ((obj > 10)? obj = true : obj = false) "fooProb5.ttl"

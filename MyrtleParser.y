@@ -123,8 +123,9 @@ SListElem : filename                                        { SListEl $1 }
 -- Done
 -- Conditions are used for the map function
 Cond : Action                                               { Always $1 }
-     | Action ',' Action                                    { ActionSeq $1 $3 }
+     | Action ',' Cond                                      { ActionSeq $1 $3 }
      | '('BoolExp')''?' Cond':'Cond                         { If $2 $5 $7 }
+     | '(' Cond ')'                                         { $2 }
 
 --DONE
 -- Actions are executed when conditions are satisfied
@@ -134,6 +135,7 @@ Action : Subject '=' Url                                    { AssignSubj $1 $3 }
        | Object '=' StringExp                               { AssignObjStr $1 $3 }
        | Object '=' IntExp                                  { AssignObjInt $1 $3 }
        | Object '=' BoolExp                                 { AssignObjBool $1 $3 }
+       | '(' Action ')'                                     { $2 }
 
 -- Literal includes strings, integers, booleans, and the wildcard any (_)
 Literal : '_'                                               { AnyLit }
@@ -141,6 +143,7 @@ Literal : '_'                                               { AnyLit }
         | BoolExp                                           { BoolLit $1 }
         | StringExp                                         { StrLit $1 }
         | Url                                               { UrlLit $1 }
+        | '(' Literal ')'                                   { $2 }
 
 LiteralList : '[' LiteralElems ']'                          { LiteralLst $2 }
 
@@ -288,6 +291,10 @@ parseError ((TokenWhere (AlexPn _ l c)) : xs) = error (printing l c)
 parseError ((TokenAnd (AlexPn _ l c)) : xs) = error (printing l c)
 parseError ((TokenOr (AlexPn _ l c))  : xs) = error (printing l c)
 parseError ((TokenVar (AlexPn _ l c) _ )  : xs) = error (printing l c)
+-- Added these 3 lines
+parseError ((TokenGet (AlexPn _ l c) _ ) : xs) = error (printing l c)
+parseError ((TokenUrl (AlexPn _ l c) _ ) : xs) = error (printing l c)
+parseError ((TokenFilename (AlexPn _ l c) _ ) : xs) = error (printing l c)
 
 parseError [] = error "Missing output file"
 
@@ -356,7 +363,7 @@ data FilteredQuery = NewQuery BasicQuery | WhereQuery BasicQuery CreateVars
 data BasicQuery = FuncStack Func | FuncStackSeq Func BasicQuery
      deriving Show
 
-data Cond = Always Action | ActionSeq Action Action | If BoolExp Cond Cond
+data Cond = Always Action | ActionSeq Action Cond | If BoolExp Cond Cond
      deriving Show
 
 data Action = AssignSubj Subject Url | AssignPred Predicate Url | AssignObjUrl Object Url 
