@@ -152,10 +152,12 @@ evalCond (Always (AssignObjUrl _ (NewUrl url))) _ (Triplet s (PredObj p _)) = Tr
 evalCond (Always (AssignObjStr _ (QString str))) _ (Triplet s (PredObj p _)) = Triplet s (PredObj p (StrObj str))
 evalCond (Always (AssignObjInt _ intexp)) env (Triplet s (PredObj p o)) = Triplet s (PredObj p (IntObj (evalIntExp intexp env o)))
 evalCond (Always (AssignObjBool _ boolexp)) env (Triplet s (PredObj p o)) = Triplet s (PredObj p (TTLBoolObj (evalBoolObj boolexp env o)))
--- evalCond (ActionSeq action cond) env triplet = evalCond cond env $ evalCond (Always action) env triplet
+evalCond (ActionSeq action cond) env triplet = evalCond cond env $ evalCond (Always action) env triplet
 evalCond (If boolexp condTrue condFalse) env t@(Triplet _ (PredObj _ o)) | evalBoolObj boolexp env o = evalCond condTrue env t
                                                                          | otherwise = evalCond condFalse env t
 evalCond _ _ triplet = triplet
+<><> "a"
+map (obj + 1)
 
 --Returns true if every subject is allowed ('_')
 anything :: FilterEl -> Bool
