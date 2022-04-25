@@ -21,26 +21,27 @@ evalSimpleBool _ _ = error "Subject conditions cannot be used inside the where c
 -- evalSimpleBool (String x y) env 
 
 evalBoolObj :: BoolExp ->[Env] -> (TTLObject -> Bool)
-evalBoolObj (GTIO x _) env = \o -> (((evalIntExp x env) o) > (getIntObj o))
-evalBoolObj (GTOI _ x) env = \o -> ((getIntObj o) > ((evalIntExp x env) o))
-evalBoolObj (LTIO x _) env = \o -> (((evalIntExp x env)o) < (getIntObj o))
-evalBoolObj (LTOI _ x) env = \o -> ((getIntObj o) < ((evalIntExp x env)o))
-evalBoolObj (EQIO x _) env = \o -> (((evalIntExp x env)o) == (getIntObj o))
-evalBoolObj (EQOI _ x) env = \o -> ((getIntObj o) == ((evalIntExp x env)o))
-evalBoolObj (AndIO x _) env = \o -> (evalBoolObj x env o) && (getBoolObj o)
-evalBoolObj (AndOI _ x) env = \o -> (getBoolObj o) && (evalBoolObj x env o)
-evalBoolObj (OrIO x _) env= \o -> (evalBoolObj x env o) || (getBoolObj o)
-evalBoolObj (OrOI _ x) env= \o -> (getBoolObj o) || (evalBoolObj x env o)
-evalBoolObj (EQBO x _) env= \o -> (evalBoolObj x env o) == (getBoolObj o)
-evalBoolObj (EQOB _ x) env= \o -> (getBoolObj o) == (evalBoolObj x env o)
-evalBoolObj QTrue env = \o -> True
-evalBoolObj QFalse env = \o -> False
-evalBoolObj (And x y) env = \o -> (evalBoolObj x env o) && (evalBoolObj y env o)
-evalBoolObj (Or x y) env = \o -> (evalBoolObj x env o) || (evalBoolObj y env o)
-evalBoolObj (EQBB x y) env = \o -> (evalBoolObj x env o) == (evalBoolObj y env o)
-evalBoolObj (GTII x y) env = \o -> (evalInt x env) > (evalInt y env)
-evalBoolObj (LTII x y) env = \o -> (evalInt x env) < (evalInt y env)
-evalBoolObj (EQII x y) env = \o -> (evalInt x env) == (evalInt y env)
+evalBoolObj _ _ = \o -> False
+-- evalBoolObj (GTIO x _) env = \o ->  False --(isIntObj o) && (((evalIntExp x env) o) > (getIntObj o))
+-- evalBoolObj (GTOI _ x) env = \o ->  False --(isIntObj o) && ((getIntObj o) > ((evalIntExp x env) o))
+-- evalBoolObj (LTIO x _) env = \o ->  False --(isIntObj o) && (((evalIntExp x env)o) < (getIntObj o))
+-- evalBoolObj (LTOI _ x) env = \o ->  False --(isIntObj o) && ((getIntObj o) < ((evalIntExp x env)o))
+-- evalBoolObj (EQIO x _) env = \o ->  False --(isIntObj o) && (((evalIntExp x env)o) == (getIntObj o))
+-- evalBoolObj (EQOI _ x) env = \o ->  False --(isIntObj o) && ((getIntObj o) == ((evalIntExp x env)o))
+-- evalBoolObj (AndIO x _) env = \o -> False --(isBoolObj o) && (evalBoolObj x env o) && (getBoolObj o)
+-- evalBoolObj (AndOI _ x) env = \o -> False --(isBoolObj o) && (getBoolObj o) && (evalBoolObj x env o)
+-- evalBoolObj (OrIO x _) env = \o ->  False --(isBoolObj o) && (evalBoolObj x env o) || (getBoolObj o)
+-- evalBoolObj (OrOI _ x) env = \o ->  False --(isBoolObj o) && (getBoolObj o) || (evalBoolObj x env o)
+-- evalBoolObj (EQBO x _) env = \o ->  False --(isBoolObj o) && (evalBoolObj x env o) == (getBoolObj o)
+-- evalBoolObj (EQOB _ x) env = \o ->  False --(isBoolObj o) && (getBoolObj o) == (evalBoolObj x env o)
+-- evalBoolObj QTrue env = \o -> True
+-- evalBoolObj QFalse env = \o -> False
+-- evalBoolObj (And x y) env = \o -> (evalBoolObj x env o) && (evalBoolObj y env o)
+-- evalBoolObj (Or x y) env = \o -> (evalBoolObj x env o) || (evalBoolObj y env o)
+-- evalBoolObj (EQBB x y) env = \o -> (evalBoolObj x env o) == (evalBoolObj y env o)
+-- evalBoolObj (GTII x y) env = \o -> (evalInt x env) > (evalInt y env)
+-- evalBoolObj (LTII x y) env = \o -> (evalInt x env) < (evalInt y env)
+-- evalBoolObj (EQII x y) env = \o -> (evalInt x env) == (evalInt y env)
 -- evalBoolObj boolExp env = \o -> evalSimpleBool boolExp env
 
 
@@ -107,9 +108,18 @@ getIntObj (IntObj x) = x
 -- getIntObj (TTLBoolObj x) = x
 getIntObj x = error ("Object "++show x++" is not an integer")
 
+isIntObj :: TTLObject -> Bool
+isIntObj (IntObj x) = True
+isIntObj _ = False
+
+
 getBoolObj :: TTLObject -> Bool
 getBoolObj (TTLBoolObj x) = x
 getBoolObj x = error ("Object "++show x++" is not a boolean")
+
+isBoolObj :: TTLObject -> Bool
+isBoolObj (IntObj x) = True
+isBoolObj _ = False
 
 --Literal
 lookupEnv :: [Env] -> String -> Int

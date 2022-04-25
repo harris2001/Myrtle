@@ -43,18 +43,13 @@ map (length(object) > 3)? object = object + 1 : object = 0
 >> "output"
 
 -- Todo
-rem (a,b,(obj > 99)) "input.ttl"
-avg "input.ttl"
+map (func) "input.ttl"
 replace (x,y,"a") (x,y,"b") "input.ttl"
-count "input.ttl"
+rem (a,b,(obj > 99)) "input.ttl"
 first "input.ttl"
 last "input.ttl"
 head 10 "input.ttl"
 tail 10 "input.ttl"
-max "input.ttl"
-min "input.ttl"
-sum "input.ttl"
-product "input.ttl"
 uppercase "ïnput.ttl"
 lowercase "input.ttl"
 length(String)

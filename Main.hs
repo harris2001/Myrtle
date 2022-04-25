@@ -53,19 +53,17 @@ evalFilteredQ (WhereQuery q w) = do let envs = assign_vars w []
                                     evalSimpleQ q [] envs
 
 printAssignments :: [Env] -> TTLObject -> IO ()
-printAssignments [] _ = print ""
-printAssignments ((str,IntVarAss intexp):env) obj = do print ("("++str++",")
+printAssignments [] _ = putStr ""
+printAssignments ((str,IntVarAss intexp):env) obj = do putStr (str++": ")
                                                        print intexp
-                                                       print ")"
                                                        printAssignments env obj
                                                        
-printAssignments ((str,BoolVarAss boolexp):env) obj = do print ("("++str++",")
+printAssignments ((str,BoolVarAss boolexp):env) obj = do putStr (str++": ")
                                                          if boolexp == True 
                                                             then
                                                                  print "True"
                                                             else
                                                                  print "False"
-                                                         print ")"
 printAssignments _ _ = print "Testing"
 -- printAssignments ((str,StringVarAss str):env) = do print "("++str++","++evalString(str)++")"
 
@@ -122,7 +120,7 @@ union_backend (x:xs) = x++union_backend xs
 -- Filter_Backend: 
 filterBackend :: [TTLTriplet] -> (FilterEl, FilterEl, LiteralList) -> [TTLTriplet]
 filterBackend [] (_,_,_)= [] --error "Query GET needs to be passed a file to execute \n Specify file by SELECT FROM \"$filename.ttl\""
-filterBackend (tri@(Triplet (Sbj subj)(PredObj (TTLPred pred) obj)):xs) (s,p,o) | (((elem (getUrl subj) (filterToList s)) || (anything s)) && ((elem (getUrl pred) (filterToList p)) || (anything p)) && ((filterObjectList obj o) || (anything p)))  = [tri]++(filterBackend xs (s,p,o))
+filterBackend (tri@(Triplet (Sbj subj)(PredObj (TTLPred pred) obj)):xs) (s,p,o) | ( ((anything s) || (elem (getUrl subj) (filterToList s))) && ((anything p) || (elem (getUrl pred) (filterToList p))) && ((anythinglit o) || (filterObjectList obj o)))  = [tri]++(filterBackend xs (s,p,o))
                                                                                 | otherwise = filterBackend xs (s,p,o)
                                                                       
 filterObjectList :: TTLObject -> LiteralList -> Bool
@@ -131,17 +129,21 @@ filterObjectList obj (LiteralLst(LiteralSeq lit lits)) = (filterObject obj lit) 
 filterObjectList obj (LiteralLst(SingleLit lit)) = filterObject obj lit
 
 filterObject :: TTLObject -> Literal -> Bool
-filterObject _ AnyLit = True
 filterObject (UrlObj (FinalUrl url)) (UrlLit (NewUrl url2)) = url==url2
 filterObject obj@(IntObj int) (BoolLit boolexp) = (evalBoolObj boolexp[]) obj 
-filterObject obj@(TTLBoolObj bool) (BoolLit boolexp) = (evalBoolObj boolexp[]) obj
+-- filterObject obj@(TTLBoolObj bool) (BoolLit boolexp) = (evalBoolObj boolexp[]) obj
 filterObject obj@(StrObj str) (StrLit str2)= str == (evalSimpleStr str2 []) 
 filterObject _ _ = False
 
---Returns true if every subject is allowed ('_')
+--Returns true if all subjects/objects are allowed ('_')
 anything :: FilterEl -> Bool
 anything Any = True
 anything _ = False
+
+--Returns true if all objects is allowed ('_')
+anythinglit :: LiteralList -> Bool
+anythinglit AnyLit = True
+anythinglit _ = False
 
 ------------------------------------------------------------------------------------------------------------------
 

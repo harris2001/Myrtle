@@ -136,13 +136,13 @@ Action : Subject '=' Url                                    { AssignSubj $1 $3 }
        | Object '=' BoolExp                                 { AssignObjBool $1 $3 }
 
 -- Literal includes strings, integers, booleans, and the wildcard any (_)
-Literal : '_'                                               { AnyLit }
-        | IntExp                                            { IntLit $1 }
+Literal : IntExp                                            { IntLit $1 }
         | BoolExp                                           { BoolLit $1 }
         | StringExp                                         { StrLit $1 }
         | Url                                               { UrlLit $1 }
 
-LiteralList : '[' LiteralElems ']'                          { LiteralLst $2 }
+LiteralList : '_'                                           { AnyLit }
+            | '[' LiteralElems ']'                          { LiteralLst $2 }
 
 LiteralElems : Literal                                      { SingleLit $1 }
              | Literal ',' LiteralElems                     { LiteralSeq $1 $3 }
@@ -375,10 +375,10 @@ data UrlList = SimpleUrl Url | UrlSeq Url UrlList
 data FilterEl = Any | FilteredList UrlList
      deriving Show
 
-data Literal = IntLit IntExp | BoolLit BoolExp | StrLit StringExp | UrlLit Url | AnyLit 
+data Literal = IntLit IntExp | BoolLit BoolExp | StrLit StringExp | UrlLit Url  
      deriving Show
 
-data LiteralList = LiteralLst LiteralElems 
+data LiteralList = LiteralLst LiteralElems | AnyLit
      deriving Show
 
 data LiteralElems = LiteralSeq Literal LiteralElems | SingleLit Literal 
