@@ -9,27 +9,30 @@ import System.IO
 
 import Data.List
 import Data.Ord
+
+import EvalBool
 ---------------------------------------------------------------------------------
 -------------------------------------- Main -------------------------------------
 ---------------------------------------------------------------------------------
 
 main :: IO ()
 main = do 
-        file <- getArgs
+        file <- FilterArgs
         contents <- readFile (head file)
         let tokens = alexScanTokens contents
         -- print(tokens)
         let expression = parseQuery tokens
-        -- print(expression)
+        print(expression)
         evalQuery expression
         
 ---------------------------------------------------------------------------------
 -------------------------------- Helper datatypes -------------------------------
 ---------------------------------------------------------------------------------
+-- Now defined in EvalBool
 
-data Assignment = IntVarAss IntExp | BoolVarAss BoolExp | StringVarAss StringExp
+-- data Assignment = IntVarAss IntExp | BoolVarAss BoolExp | StringVarAss StringExp
 
-type Env = (String,Assignment)
+-- type Env = (String,Assignment)
 
 ---------------------------------------------------------------------------------
 -------------------------------- Helper functions -------------------------------
@@ -45,8 +48,26 @@ evalQuery (WriteQuery q f) = do triplets <-(evalFilteredQ q)
 --If there are any environment variables in the query, they are passed in the query before it's executed
 evalFilteredQ :: FilteredQuery -> IO ([TTLTriplet])
 evalFilteredQ (NewQuery q) = evalSimpleQ q [] []
-evalFilteredQ (WhereQuery q w) = do let env = assign_vars w
-                                    evalSimpleQ q [] env
+evalFilteredQ (WhereQuery q w) = do let envs = assign_vars w []
+                                    printAssignments envs (IntObj 2)
+                                    evalSimpleQ q [] envs
+
+printAssignments :: [Env] -> TTLObject -> IO ()
+printAssignments [] _ = print ""
+printAssignments ((str,IntVarAss intexp):env) obj = do print ("("++str++",")
+                                                       print intexp
+                                                       print ")"
+                                                       printAssignments env obj
+                                                       
+printAssignments ((str,BoolVarAss boolexp):env) obj = do print ("("++str++",")
+                                                         if boolexp == True 
+                                                            then
+                                                                 print "True"
+                                                            else
+                                                                 print "False"
+                                                         print ")"
+printAssignments _ _ = print "Testing"
+-- printAssignments ((str,StringVarAss str):env) = do print "("++str++","++evalString(str)++")"
 
 -- Evaluates each query and returns the Final result in the form of list of triplets
 evalSimpleQ :: BasicQuery -> [TTLTriplet] -> [Env] -> IO ([TTLTriplet])
@@ -58,8 +79,8 @@ evalSimpleQ (FuncStackSeq f q) tri env = do result <- (evalFunc f tri env)
 evalFunc :: Func -> [TTLTriplet] -> [Env] -> IO ([TTLTriplet])
 evalFunc (Union slist) tri _ = do graphs <- (return_rdf (uniq (processingSlist slist)))
                                   return (union_backend ([tri]++graphs))
-evalFunc (Get filterSubj filterPred lit) tri env = return (filterBackend tri (filterSubj, filterPred, lit))
-
+evalFunc (Filter filterSubj filterPred list) tri env = return (filterBackend tri (filterSubj, filterPred, list))
+evalFunc (StartsWith string) = evalFunc (Filter filterSubj map (take len(string))=)
 -- Takes a list of turtle files and prints them
 print_rdf :: [String] -> IO String
 print_rdf [] = return ""
@@ -77,19 +98,20 @@ return_rdf (x:xs) = do graph <- (parsing x)
                           return ([y]++ys)
 
 -- Returns a list of environment variables and their values
-assign_vars :: CreateVars -> [Env]
-assign_vars (UVarEnv var) = [assign_var var]
-assign_vars (VarEnv var vars) = [assign_var var] ++ assign_vars vars
+assign_vars :: CreateVars -> [Env] -> [Env]
+assign_vars (UVarEnv var) envs = assign_var var envs
+assign_vars (VarEnv var vars) envs = newVar ++ assign_vars vars (envs++newVar) 
+        where newVar = assign_var var envs
 
-assign_var :: CreateVar -> Env
-assign_var (IntVar str int) = (str,IntVarAss int)
-assign_var (BoolVar str bool) = (str,BoolVarAss bool)
-assign_var (StringVar str str2) = (str,StringVarAss str2)
+assign_var :: CreateVar -> [Env] -> [Env]
+assign_var (IntVar str intexp) envs = envs ++ [(str,IntVarAss (evalInt intexp envs))]
+assign_var (BoolVar str boolexp) envs = envs ++ [(str,BoolVarAss (evalSimpleBool boolexp envs))]
+assign_var (StringVar str val) envs = envs ++ [(str,StringVarAss (evalSimpleStr val envs))]
 
 ------------------------------------------------------------------------------------------------------------------
 --                                             Functions Backend                                                --
 ------------------------------------------------------------------------------------------------------------------
--- Combines [[TTLTriplet]] together to a single [Triplet]
+-- Combines [[TTLTriplet]] toFilterher to a single [Triplet]
 
 -- Union_Backend:
 union_backend :: [[TTLTriplet]] -> [TTLTriplet]
@@ -98,22 +120,31 @@ union_backend [[]] = []
 union_backend (x:xs) = x++union_backend xs
 
 -- Filter_Backend: 
-filterBackend :: [TTLTriplet] -> (FilterEl, FilterEl, Literal) -> [TTLTriplet]
-filterBackend [] (_,_,_)= [] --error "Query GET needs to be passed a file to execute \n Specify file by SELECT FROM \"$filename.ttl\""
-filterBackend (tri@(Triplet (Sbj subj)(PredObj (TTLPred pred) obj)):xs) (s,p,o) | (((elem (getUrl subj) (filterToList s)) || (anything s)) && ((elem (getUrl pred) (filterToList p)) || (anything p)) && ((filterObject obj o) || (anything p)))  = [tri]++(filterBackend xs (s,p,o))
-                                                                              | otherwise = filterBackend xs (s,p,o)
+filterBackend :: [TTLTriplet] -> (FilterEl, FilterEl, LiteralList) -> [TTLTriplet]
+filterBackend [] (_,_,_)= [] --error "Query Filter needs to be passed a file to execute \n Specify file by SELECT FROM \"$filename.ttl\""
+filterBackend (tri@(Triplet (Sbj subj)(PredObj (TTLPred pred) obj)):xs) (s,p,o) | (((elem (FilterUrl subj) (filterToList s)) || (anything s)) && ((elem (FilterUrl pred) (filterToList p)) || (anything p)) && ((filterObjectList obj o) || (anything p)))  = [tri]++(filterBackend xs (s,p,o))
+                                                                                | otherwise = filterBackend xs (s,p,o)
                                                                       
+filterObjectList :: TTLObject -> LiteralList -> Bool
+-- filterObjectList _ _ = True
+filterObjectList obj list@(LiteralLst(LiteralSeq lit lits)) = (filterObject obj lit) || filterObjectList obj list
+filterObjectList obj (LiteralLst(SingleLit lit)) = filterObject obj lit
+
 filterObject :: TTLObject -> Literal -> Bool
-filterObject _ _ = True
--- filterObject (UrlObj url) = 
--- filterObject (IntObj int) = 
--- filterObject (TTLBoolObj bool) = 
--- filterObject (StrObj str) = 
+filterObject (_) AnyLit = True
+filterObject (UrlObj (FinalUrl url)) (UrlLit (NewUrl url2)) = url==url2
+filterObject obj@(IntObj int) (BoolLit boolexp) = (evalBoolObj boolexp[]) obj 
+filterObject obj@(TTLBoolObj bool) (BoolLit boolexp) = (evalBoolObj boolexp[]) obj
+filterObject obj@(StrObj str) (StrLit str2)= str == (evalSimpleStr str2 []) 
+filterObject _ _ = False
 
 --Returns true if every subject is allowed ('_')
 anything :: FilterEl -> Bool
 anything Any = True
 anything _ = False
+"testing"
+
+
 
 ------------------------------------------------------------------------------------------------------------------
 

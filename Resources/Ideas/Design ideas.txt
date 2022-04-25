@@ -38,11 +38,13 @@ map (length(object) > 3)? object = object + 1 : object = 0
 
 ------------------------------------------------------------------------------------------------------------
 
+-- Done 
 | <- piping
-> "output"
+>> "output"
+
+-- Todo
 rem (a,b,(obj > 99)) "input.ttl"
 avg "input.ttl"
-unique "input.ttl"
 replace (x,y,"a") (x,y,"b") "input.ttl"
 count "input.ttl"
 first "input.ttl"
@@ -55,7 +57,6 @@ sum "input.ttl"
 product "input.ttl"
 uppercase "ïnput.ttl"
 lowercase "input.ttl"
-sortBy object inc "input.ttl"
 length(String)
 startsWith(String)
 

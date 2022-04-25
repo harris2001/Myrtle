@@ -132,3 +132,12 @@ union "foo.ttl"                                         : Prints the content of 
 union ["foo.ttl",'bar.ttl'] >> "out.ttl"                : Outputs the result of unioning foo & bar files in out.ttl
 union "foo.ttl" | union 'bar.ttl' >> "out.ttl"          : Exactly the same as above
 ```
+
+#### USE OF WHERE CONDITION
+###### Variables can be assigned as follows
+```
+where x1 = 1                                            : from integer values
+      x2 = (1+2*3-4/5)^6                                : from integer expressions
+      x3 = true and (5>0 or 40<20)                      : from boolean expressions
+      x4 = "testing"                                    : from string literals
+```
