@@ -47,6 +47,7 @@ $white+       ;
   where          { tok (\p s -> TokenWhere p) }
   and            { tok (\p s -> TokenAnd p) }
   or             { tok (\p s -> TokenOr p) }
+  add            { tok (\p s -> TokenAdd p) }
   \" [$printable # \"]+.ttl\"                                { tok (\p s -> TokenFilename p (removeQuot s)) }
   \' [$printable # \']+.ttl\'                                { tok (\p s -> TokenFilename p (removeQuot s)) }
   $alpha [$alpha $digit \_ \’]*                              { \p s -> TokenVar p s }
@@ -119,6 +120,7 @@ data LangToken =
   TokenPrefix AlexPosn               |
   TokenBase AlexPosn                 |
   TokenNumber AlexPosn String        |
+  TokenAdd AlexPosn                  |
   TokenGet AlexPosn
     deriving (Eq,Show) 
 
@@ -159,6 +161,7 @@ tokenPosn (TokenOr (AlexPn a l c)) = show(l) ++ ":" ++ show(c)
 tokenPosn (TokenVar (AlexPn a l c) _) = show(l) ++ ":" ++ show(c)
 tokenPosn (TokenString (AlexPn a l c) _) = show(l) ++ ":" ++ show(c)
 tokenPosn (TokenFilename (AlexPn a l c) _) = show(l) ++ ":" ++ show(c)
+tokenPosn (TokenAdd (AlexPn a l c)) = show(l) ++ ":" ++ show(c)
 tokenPosn (TokenGet (AlexPn a l c) ) = show(l) ++ ":" ++ show(c)
 --
 tokenPosn (TokenDot (AlexPn a l c) ) = show(l) ++ ":" ++ show(c)
