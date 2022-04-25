@@ -124,14 +124,13 @@ filterBackend (tri@(Triplet (Sbj subj)(PredObj (TTLPred pred) obj)):xs) (s,p,o) 
                                                                                 | otherwise = filterBackend xs (s,p,o)
                                                                       
 filterObjectList :: TTLObject -> LiteralList -> Bool
--- filterObjectList _ _ = True
 filterObjectList obj (LiteralLst(LiteralSeq lit lits)) = (filterObject obj lit) || (filterObjectList obj (LiteralLst lits))
 filterObjectList obj (LiteralLst(SingleLit lit)) = filterObject obj lit
 
 filterObject :: TTLObject -> Literal -> Bool
 filterObject (UrlObj (FinalUrl url)) (UrlLit (NewUrl url2)) = url==url2
 filterObject obj@(IntObj int) (BoolLit boolexp) = (evalBoolObj boolexp[]) obj 
--- filterObject obj@(TTLBoolObj bool) (BoolLit boolexp) = (evalBoolObj boolexp[]) obj
+filterObject obj@(TTLBoolObj bool) (BoolLit boolexp) = (evalBoolObj boolexp[]) obj
 filterObject obj@(StrObj str) (StrLit str2)= str == (evalSimpleStr str2 []) 
 filterObject _ _ = False
 
