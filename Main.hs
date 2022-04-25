@@ -40,11 +40,11 @@ main = do
 
 -- Print query result or write it in file
 evalQuery :: Query -> IO ()
-evalQuery (OutputQuery inp q) = do graph <- (return_rdf (uniq (processingSlist inp)))
-                                   triplets <-(evalFilteredQ q)
+evalQuery (OutputQuery inp q) = do graph <- (return_rdf (uniq (processingSlist (StrListSingle inp))))
+                                   triplets <-(evalFilteredQ q (head graph))
                                    putStr (printerTTLGraph (sortTriplets triplets))
-evalQuery (WriteQuery inp q f) = do graph <- (return_rdf (uniq (processingSlist inp)))
-                                    triplets <-(evalFilteredQ q)
+evalQuery (WriteQuery inp q f) = do graph <- (return_rdf (uniq (processingSlist (StrListSingle inp))))
+                                    triplets <-(evalFilteredQ q (head graph))
                                     writeFile f (nub(printerTTLGraph(sortTriplets triplets)))
 
 --If there are any environment variables in the query, they are passed in the query before it's executed
