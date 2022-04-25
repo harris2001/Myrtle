@@ -1289,7 +1289,7 @@ happyReduction_2 _ _ _  = notHappyAtAll
 happyReduce_3 = happySpecReduce_1  5 happyReduction_3
 happyReduction_3 (HappyAbsSyn6  happy_var_1)
 	 =  HappyAbsSyn5
-		 (NewQuery happy_var_1 $ 3
+		 (NewQuery happy_var_1
 	)
 happyReduction_3 _  = notHappyAtAll 
 
@@ -2335,7 +2335,7 @@ parseError ((TokenAnd (AlexPn _ l c)) : xs) = error (printing l c)
 parseError ((TokenOr (AlexPn _ l c))  : xs) = error (printing l c)
 parseError ((TokenVar (AlexPn _ l c) _ )  : xs) = error (printing l c)
 -- Added these 3 lines
-parseError ((TokenGet (AlexPn _ l c) _ )  : xs) = error (printing l c)
+parseError ((TokenGet (AlexPn _ l c))  : xs) = error (printing l c)
 parseError ((TokenUrl (AlexPn _ l c) _ )  : xs) = error (printing l c)
 parseError ((TokenFilename (AlexPn _ l c) _ )  : xs) = error (printing l c)
 

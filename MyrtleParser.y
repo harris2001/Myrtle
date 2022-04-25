@@ -68,7 +68,7 @@ Query : filename '|' FilteredQuery '>''>' filename          { WriteQuery $1 $3 $
 
 -- DONE --
 -- Is a basic query with an optional where clause
-FilteredQuery : BasicQuery                                  { NewQuery $1 $ 3 }
+FilteredQuery : BasicQuery                                  { NewQuery $1 }
               | BasicQuery where CreateVars                 { WhereQuery $1 $3 }
 
 -- DONE --
@@ -290,7 +290,7 @@ parseError ((TokenAnd (AlexPn _ l c)) : xs) = error (printing l c)
 parseError ((TokenOr (AlexPn _ l c))  : xs) = error (printing l c)
 parseError ((TokenVar (AlexPn _ l c) _ )  : xs) = error (printing l c)
 -- Added these 3 lines
-parseError ((TokenGet (AlexPn _ l c) _ )  : xs) = error (printing l c)
+parseError ((TokenGet (AlexPn _ l c))  : xs) = error (printing l c)
 parseError ((TokenUrl (AlexPn _ l c) _ )  : xs) = error (printing l c)
 parseError ((TokenFilename (AlexPn _ l c) _ )  : xs) = error (printing l c)
 
