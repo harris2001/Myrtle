@@ -40,17 +40,19 @@ main = do
 
 -- Print query result or write it in file
 evalQuery :: Query -> IO ()
-evalQuery (OutputQuery q) = do triplets <-(evalFilteredQ q)
-                               putStr (printerTTLGraph (sortTriplets triplets))
-evalQuery (WriteQuery q f) = do triplets <-(evalFilteredQ q)
-                                writeFile f (nub(printerTTLGraph(sortTriplets triplets)))
+evalQuery (OutputQuery inp q) = do graph <- (return_rdf (uniq (processingSlist inp)))
+                                   triplets <-(evalFilteredQ q)
+                                   putStr (printerTTLGraph (sortTriplets triplets))
+evalQuery (WriteQuery inp q f) = do graph <- (return_rdf (uniq (processingSlist inp)))
+                                    triplets <-(evalFilteredQ q)
+                                    writeFile f (nub(printerTTLGraph(sortTriplets triplets)))
 
 --If there are any environment variables in the query, they are passed in the query before it's executed
-evalFilteredQ :: FilteredQuery -> IO ([TTLTriplet])
-evalFilteredQ (NewQuery q) = evalSimpleQ q [] []
-evalFilteredQ (WhereQuery q w) = do let envs = assign_vars w []
-                                    printAssignments envs (IntObj 2)
-                                    evalSimpleQ q [] envs
+evalFilteredQ :: FilteredQuery -> [TTLTriplet] -> IO ([TTLTriplet])
+evalFilteredQ (NewQuery q) graph = evalSimpleQ q graph []
+evalFilteredQ (WhereQuery q w) graph = do let envs = assign_vars w []
+                                          printAssignments envs (IntObj 2)
+                                          evalSimpleQ q graph envs
 
 printAssignments :: [Env] -> TTLObject -> IO ()
 printAssignments [] _ = print ""

@@ -63,12 +63,12 @@ import Data.List
 -- DONE --
 -- Is the entry point of the myrtle script
 -- The user can choose to either print the output of his/her query or save it in a file
-Query : FilteredQuery '>''>' filename                       { WriteQuery $1 $4 }
-      | FilteredQuery                                       { OutputQuery $1 }
+Query : filename '|' FilteredQuery '>''>' filename          { WriteQuery $1 $3 $6 }
+      | filename '|' FilteredQuery                          { OutputQuery $1 $3 }
 
 -- DONE --
 -- Is a basic query with an optional where clause
-FilteredQuery : BasicQuery                                  { NewQuery $1 }
+FilteredQuery : BasicQuery                                  { NewQuery $1 $ 3 }
               | BasicQuery where CreateVars                 { WhereQuery $1 $3 }
 
 -- DONE --
@@ -125,7 +125,6 @@ SListElem : filename                                        { SListEl $1 }
 Cond : Action                                               { Always $1 }
      | Action ',' Cond                                      { ActionSeq $1 $3 }
      | '('BoolExp')''?' Cond':'Cond                         { If $2 $5 $7 }
-     | '(' Cond ')'                                         { $2 }
 
 --DONE
 -- Actions are executed when conditions are satisfied
@@ -143,7 +142,6 @@ Literal : '_'                                               { AnyLit }
         | BoolExp                                           { BoolLit $1 }
         | StringExp                                         { StrLit $1 }
         | Url                                               { UrlLit $1 }
-        | '(' Literal ')'                                   { $2 }
 
 LiteralList : '[' LiteralElems ']'                          { LiteralLst $2 }
 
@@ -292,9 +290,9 @@ parseError ((TokenAnd (AlexPn _ l c)) : xs) = error (printing l c)
 parseError ((TokenOr (AlexPn _ l c))  : xs) = error (printing l c)
 parseError ((TokenVar (AlexPn _ l c) _ )  : xs) = error (printing l c)
 -- Added these 3 lines
-parseError ((TokenGet (AlexPn _ l c) _ ) : xs) = error (printing l c)
-parseError ((TokenUrl (AlexPn _ l c) _ ) : xs) = error (printing l c)
-parseError ((TokenFilename (AlexPn _ l c) _ ) : xs) = error (printing l c)
+parseError ((TokenGet (AlexPn _ l c) _ )  : xs) = error (printing l c)
+parseError ((TokenUrl (AlexPn _ l c) _ )  : xs) = error (printing l c)
+parseError ((TokenFilename (AlexPn _ l c) _ )  : xs) = error (printing l c)
 
 parseError [] = error "Missing output file"
 
@@ -354,7 +352,7 @@ data CreateVar = IntVar String IntExp | BoolVar String BoolExp | StringVar Strin
 data CreateVars = UVarEnv CreateVar | VarEnv CreateVar CreateVars
      deriving Show
      
-data Query = OutputQuery FilteredQuery | WriteQuery FilteredQuery String
+data Query = OutputQuery String FilteredQuery | WriteQuery String FilteredQuery String
      deriving Show
 
 data FilteredQuery = NewQuery BasicQuery | WhereQuery BasicQuery CreateVars
