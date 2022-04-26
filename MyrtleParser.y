@@ -88,7 +88,7 @@ CreateVar : var '=' IntExp                                  { IntVar $1 $3 }
 
 -- Functions that return RDF Graphs are listed here
 Func : filter '(' FilterEl ',' FilterEl ',' LiteralList ')' { Filter $3 $5 $7 }
-     | map '('Cond')'                                       { Map $3 }
+     | map '('Cond')' Slist                                 { Map $3 $5}
      | union SList                                          { Union $2 }
      | join '('Node',' Node')' SList                        { NormalJoin $3 $5 $7 }
      | join JoinOption '('Node',' Node')' SList             { Join $2 $4 $6 $8 }
@@ -384,7 +384,7 @@ data LiteralList = LiteralLst LiteralElems | AnyLit
 data LiteralElems = LiteralSeq Literal LiteralElems | SingleLit Literal 
      deriving Show
 
-data Func = Map Cond | Union SList | NormalJoin Node Node SList | Join JoinOption Node Node SList |
+data Func = Map Cond SList | Union SList | NormalJoin Node Node SList | Join JoinOption Node Node SList |
             Filter FilterEl FilterEl LiteralList | Get FilterEl FilterEl LiteralList
      deriving Show     
 

@@ -56,6 +56,7 @@ evalInt (ExpoII x1 x2) env = ((evalInt x1 env) ^ (evalInt x2 env))
 evalInt (QInt int) env = int 
 evalInt (NegateI x) env = (-1*(evalInt x env))
 evalInt (IntVariable str) env = (lookupEnv env str)
+evalInt _ _ = error "Integer expressions on objects cannot be used inside the where clause"
 
 evalIntExp :: IntExp -> [Env] -> (TTLObject -> Int)
 evalIntExp (PlusOI _ x) env = \o -> ((getIntObj o) + ((evalIntExp x env)o))

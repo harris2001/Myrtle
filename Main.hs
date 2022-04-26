@@ -77,7 +77,7 @@ evalSimpleQ (FuncStackSeq f q) tri env = do result <- (evalFunc f tri env)
 evalFunc :: Func -> [TTLTriplet] -> [Env] -> IO ([TTLTriplet])
 evalFunc (Union slist) tri _ = do graphs <- (return_rdf (uniq (processingSlist slist)))
                                   return (union_backend ([tri]++graphs))
-evalFunc (Get filterSubj filterPred list) tri env = return (filterBackend tri (filterSubj, filterPred, list))
+evalFunc (Get filterSubj filterPred list) tri env = return (filterBackend tri env (filterSubj, filterPred, list))
 
 -- Takes a list of turtle files and prints them
 print_rdf :: [String] -> IO String
@@ -98,7 +98,7 @@ return_rdf (x:xs) = do graph <- (parsing x)
 -- Returns a list of environment variables and their values
 assign_vars :: CreateVars -> [Env] -> [Env]
 assign_vars (UVarEnv var) envs = assign_var var envs
-assign_vars (VarEnv var vars) envs = newVar ++ assign_vars vars (envs++newVar) 
+assign_vars (VarEnv var vars) envs = assign_vars vars (newVar) 
         where newVar = assign_var var envs
 
 assign_var :: CreateVar -> [Env] -> [Env]
@@ -118,21 +118,21 @@ union_backend [[]] = []
 union_backend (x:xs) = x++union_backend xs
 
 -- Filter_Backend: 
-filterBackend :: [TTLTriplet] -> (FilterEl, FilterEl, LiteralList) -> [TTLTriplet]
-filterBackend [] (_,_,_)= [] --error "Query GET needs to be passed a file to execute \n Specify file by SELECT FROM \"$filename.ttl\""
-filterBackend (tri@(Triplet (Sbj subj)(PredObj (TTLPred pred) obj)):xs) (s,p,o) | ( ((anything s) || (elem (getUrl subj) (filterToList s))) && ((anything p) || (elem (getUrl pred) (filterToList p))) && ((anythinglit o) || (filterObjectList obj o)))  = [tri]++(filterBackend xs (s,p,o))
-                                                                                | otherwise = filterBackend xs (s,p,o)
-                                                                      
-filterObjectList :: TTLObject -> LiteralList -> Bool
-filterObjectList obj (LiteralLst(LiteralSeq lit lits)) = (filterObject obj lit) || (filterObjectList obj (LiteralLst lits))
-filterObjectList obj (LiteralLst(SingleLit lit)) = filterObject obj lit
+filterBackend :: [TTLTriplet] -> [Env] -> (FilterEl, FilterEl, LiteralList) -> [TTLTriplet]
+filterBackend [] env (_,_,_)= [] --error "Query GET needs to be passed a file to execute \n Specify file by SELECT FROM \"$filename.ttl\""
+filterBackend (tri@(Triplet (Sbj subj)(PredObj (TTLPred pred) obj)):xs) env (s,p,o) | ( ((anything s) || (elem (getUrl subj) (filterToList s))) && ((anything p) || (elem (getUrl pred) (filterToList p))) && ((anythinglit o) || (filterObjectList obj o env)))  = [tri]++(filterBackend xs env (s,p,o))
+                                                                                    | otherwise = filterBackend xs env (s,p,o)
 
-filterObject :: TTLObject -> Literal -> Bool
-filterObject (UrlObj (FinalUrl url)) (UrlLit (NewUrl url2)) = url==url2
-filterObject obj@(IntObj int) (BoolLit boolexp) = (evalBoolObj boolexp[]) obj 
-filterObject obj@(TTLBoolObj bool) (BoolLit boolexp) = (evalBoolObj boolexp[]) obj
-filterObject obj@(StrObj str) (StrLit str2)= str == (evalSimpleStr str2 []) 
-filterObject _ _ = False
+filterObjectList :: TTLObject -> LiteralList -> [Env] -> Bool
+filterObjectList obj (LiteralLst(LiteralSeq lit lits)) env = (filterObject obj lit env ) || (filterObjectList obj (LiteralLst lits) env)
+filterObjectList obj (LiteralLst(SingleLit lit)) env = filterObject obj lit env
+
+filterObject :: TTLObject -> Literal -> [Env] -> Bool
+filterObject (UrlObj (FinalUrl url)) (UrlLit (NewUrl url2)) env = url==url2
+filterObject obj@(IntObj int) (BoolLit boolexp) env = (evalBoolObj boolexp env) obj 
+filterObject obj@(TTLBoolObj bool) (BoolLit boolexp) env  = (evalBoolObj boolexp env) obj
+filterObject obj@(StrObj str) (StrLit str2) env = str == (evalSimpleStr str2 env) 
+filterObject _ _ _ = False
 
 --Returns true if all subjects/objects are allowed ('_')
 anything :: FilterEl -> Bool
