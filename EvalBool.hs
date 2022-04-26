@@ -1,5 +1,5 @@
 module EvalBool where
--- import EvalInt
+
 import MyrtleParser
 import RDF_Parser
 
@@ -20,6 +20,16 @@ evalSimpleBool (LTII x y) env = (evalInt x env) < (evalInt y env)
 evalSimpleBool (EQII x y) env = (evalInt x env) == (evalInt y env)
 -- evalSimpleBool (IntVariable str) env = (lookupBoolEnv env str)
 evalSimpleBool _ _ = error "Subject conditions cannot be used inside the where clause"
+
+isBoolEval :: BoolExp -> Bool
+isBoolEval QTrue = True
+isBoolEval QFalse = True
+isBoolEval (And _ _) = True
+isBoolEval (Or _ _) = True
+isBoolEval (EQBB _ _) = True
+isBoolEval (GTII _ _) = True
+isBoolEval (LTII _ _) = True
+isBoolEval (EQII _ _) = True
 
 evalBoolObj :: BoolExp ->[Env] -> (TTLObject -> Bool)
 evalBoolObj (GTIO x _) env = \o ->  (isIntObj o) && (((evalIntExp x env) o) > (getIntObj o))
@@ -44,6 +54,20 @@ evalBoolObj (LTII x y) env = \o -> (evalInt x env) < (evalInt y env)
 evalBoolObj (EQII x y) env = \o -> (evalInt x env) == (evalInt y env)
 evalBoolObj boolExp env = \o -> evalSimpleBool boolExp env
 
+evalUBool :: BoolExp -> [Env] -> (MyrtleParser.Url -> Bool)
+evalUBool (EQUU (NewUrl x) (NewUrl y)) env = \o -> x == y
+evalUBool (EQSU _ (NewUrl x)) = \(NewUrl s) -> s == x
+evalUBool (EQUS (NewUrl x) _) = \(NewUrl s) -> x == s
+evalUBool (EQPU _ (NewUrl x)) = \(NewUrl p) -> p == x
+evalUBool (EQUP (NewUrl x) _) = \(NewUrl p) -> x == p
+evalUBool (EQOU _ (NewUrl x)) = \(NewUrl o) -> o == x
+evalUBool (EQUO (NewUrl x) _) = \(NewUrl o) -> x == o
+
+evalSBool :: BoolExp -> (String -> Bool)
+evalSBool (EQSS (QString x) (QString y)) = \o -> x == y
+evalSBool (EQSO (QString x) _) = \(StrObj o -> x == o
+evalSBool (EQOS _ (QString x)) = \o -> o == x
+
 ------------------------------------------------------------------------------------------
 --                                   Evaluating Url                                     --
 ------------------------------------------------------------------------------------------
@@ -61,7 +85,6 @@ evalSimpleStr (QString x) env = x
 ------------------------------------------------------------------------------------------
 --                                   Evaluating Int                                     --
 ------------------------------------------------------------------------------------------
-
 evalInt :: IntExp -> [Env] -> Int
 evalInt (PlusII x1 x2) env = ((evalInt x1 env) + (evalInt x2 env))
 evalInt (MinusII x1 x2) env = ((evalInt x1 env) - (evalInt x2 env))
@@ -72,6 +95,17 @@ evalInt (QInt int) env = int
 evalInt (NegateI x) env = (-1*(evalInt x env))
 evalInt (IntVariable str) env = (lookupIntEnv env str)
 evalInt _ _ = error "Integer expressions on objects cannot be used inside the where clause"
+
+isIntEval :: IntExp -> Bool
+isIntEval (PlusII _ _ )  = True
+isIntEval (MinusII _ _ ) = True
+isIntEval (TimesII _ _ ) = True
+isIntEval (DivII _ _ ) = True
+isIntEval (ExpoII _ _ ) = True
+isIntEval (QInt _ ) = True
+isIntEval (NegateI _ ) = True
+isIntEval (IntVariable _ ) = True
+isIntEval _ = False
 
 evalIntExp :: IntExp -> [Env] -> (TTLObject -> Int)
 evalIntExp (PlusOI _ x) env = \o -> ((getIntObj o) + ((evalIntExp x env)o))
@@ -91,6 +125,10 @@ evalIntExp (ExpoIO x _) env = \o -> (((evalIntExp x env)o) ^ (getIntObj o))
 evalIntExp (ExpoOO _ _) env = \o -> ((getIntObj o) ^ (getIntObj o))
 evalIntExp (NegateO _) env = \o -> (-1*(getIntObj o))
 evalIntExp x env = \o -> evalInt x env
+
+-- DONE --
+evalSimpleStr :: StringExp -> [Env] -> String
+evalSimpleStr (QString s) envs = s
 
 --------------------------------------------------------------------------------------
 --                          Getting the type of an object                           --
@@ -208,6 +246,56 @@ getIntObj :: TTLObject -> Int
 getIntObj (IntObj x) = x
 getIntObj x = error ("Object "++show x++" is not an integer")
 
+isIntObj :: TTLObject -> Bool
+isIntObj (IntObj x) = True
+isIntObj _ = False
+
+
 getBoolObj :: TTLObject -> Bool
 getBoolObj (TTLBoolObj x) = x
 getBoolObj x = error ("Object "++show x++" is not a boolean")
+
+
+isBoolObj :: TTLObject -> Bool
+isBoolObj (TTLBoolObj x) = True
+isBoolObj _ = False
+
+isUrlObj :: TLLObject -> Bool
+isUrlObj (UrlObj _) = True
+isUrlObj _ = False
+
+isUrlEval :: BoolExp -> Bool
+isUrlEval (EQUU _ _ ) = True
+isUrlEval (EQSU _ _ ) = True
+isUrlEval (EQUS _ _ ) = True
+isUrlEval (EQPU _ _ ) = True
+isUrlEval (EQUP _ _ ) = True
+isUrlEval (EQOU _ _ ) = True
+isUrlEval (EQUO _ _ ) = True
+isUrlEval _ = False
+
+isStrObj :: TTLObject -> Bool
+isStrObj (StrObj _) = True
+isStrObj _ = False
+
+isStrEval :: BoolExp -> Bool
+isStrEval (EQSS _ _) = True
+isStrEval (EQSO _ _) = True
+isStrEval (EQOS _ _) = True
+isStrEval _ = False
+
+--Literal
+lookupEnv :: [Env] -> String -> Int
+lookupEnv [] v = error ("Variable "++show v++" not in scope")
+--IntLit val
+lookupEnv ((str,IntVarAss val):xs) v | str==v =  val
+                                     | otherwise = lookupEnv xs v
+-- lookupEnv ((str,BoolVarAss val):xs) v | str==v = IntLit val
+--                                      | otherwise = lookupEnv xs v
+-- lookupEnv ((str,StrVarAss val):xs) v | str==v = IntLit val
+--                                      | otherwise = lookupEnv xs v
+
+-- evalSBool :: BoolExp -> (TTLObject -> Bool)
+-- evalSBool (EQSS (QString x) (QString y)) = \o -> x == y
+-- evalSBool (EQSO (QString x) _) = \o -> x == o
+-- evalSBool (EQOS _ (QString x)) = \o -> o == x

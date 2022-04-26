@@ -48,6 +48,7 @@ import Data.List
   or             { TokenOr _ }
   var            { TokenVar _ $$ }
   url            { TokenUrl _ $$ }
+  add            { TokenAdd _ }
 
 %left "," ";" "."
 %left '='
@@ -62,8 +63,8 @@ import Data.List
 -- DONE --
 -- Is the entry point of the myrtle script
 -- The user can choose to either print the output of his/her query or save it in a file
-Query : FilteredQuery '>''>' filename                       { WriteQuery $1 $4 }
-      | FilteredQuery                                       { OutputQuery $1 }
+Query : filename '|' FilteredQuery '>''>' filename          { WriteQuery $1 $3 $6 }
+      | filename '|' FilteredQuery                          { OutputQuery $1 $3 }
 
 -- DONE --
 -- Is a basic query with an optional where clause
@@ -91,6 +92,7 @@ Func : filter '(' FilterEl ',' FilterEl ',' LiteralList ')' { Filter $3 $5 $7 }
      | union SList                                          { Union $2 }
      | join '('Node',' Node')' SList                        { NormalJoin $3 $5 $7 }
      | join JoinOption '('Node',' Node')' SList             { Join $2 $4 $6 $8 }
+     | add '(' Url ',' Url ',' Literal ')'                  { Add $3 $5 $7 }
      
 -- DONE
 -- The parameters allowed in the filter function
@@ -121,7 +123,7 @@ SListElem : filename                                        { SListEl $1 }
 -- Done
 -- Conditions are used for the map function
 Cond : Action                                               { Always $1 }
-     | Action ',' Action                                    { ActionSeq $1 $3 }
+     | Action ',' Cond                                      { ActionSeq $1 $3 }
      | '('BoolExp')''?' Cond':'Cond                         { If $2 $5 $7 }
 
 --DONE
@@ -132,18 +134,20 @@ Action : Subject '=' Url                                    { AssignSubj $1 $3 }
        | Object '=' StringExp                               { AssignObjStr $1 $3 }
        | Object '=' IntExp                                  { AssignObjInt $1 $3 }
        | Object '=' BoolExp                                 { AssignObjBool $1 $3 }
+       | add '(' Url ',' Url ',' Literal ')'                { Add $3 $5 $7 }
+       | '(' Action ')'                                     { $2 }
 
 -- Literal includes strings, integers, booleans, and the wildcard any (_)
-Literal : IntExp                                            { IntLit $1 }
-        | BoolExp                                           { BoolLit $1 }
-        | StringExp                                         { StrLit $1 }
-        | Url                                               { UrlLit $1 }
+Literal : IntExp                                        { IntLit $1 }
+        | BoolExp                                       { BoolLit $1 }
+        | StringExp                                     { StrLit $1 }
+        | Url                                           { UrlLit $1 }
 
-LiteralList : '_'                                           { AnyLit }
-            | '[' LiteralElems ']'                          { LiteralLst $2 }
+LiteralList : '_'                                       { AnyLit }
+            | '[' LiteralElems ']'                      { LiteralLst $2 }
 
-LiteralElems : Literal                                      { SingleLit $1 }
-             | Literal ',' LiteralElems                     { LiteralSeq $1 $3 }
+LiteralElems : Literal                                  { SingleLit $1 }
+             | Literal ',' LiteralElems                 { LiteralSeq $1 $3 }
 
 -- DONE --
 -- Integer Expression
@@ -286,6 +290,10 @@ parseError ((TokenWhere (AlexPn _ l c)) : xs) = error (printing l c)
 parseError ((TokenAnd (AlexPn _ l c)) : xs) = error (printing l c)
 parseError ((TokenOr (AlexPn _ l c))  : xs) = error (printing l c)
 parseError ((TokenVar (AlexPn _ l c) _ )  : xs) = error (printing l c)
+parseError ((TokenAdd (AlexPn _ l c)) : xs) = error (printing l c)
+parseError ((TokenGet (AlexPn _ l c))  : xs) = error (printing l c)
+parseError ((TokenUrl (AlexPn _ l c) _ )  : xs) = error (printing l c)
+parseError ((TokenFilename (AlexPn _ l c) _ )  : xs) = error (printing l c)
 
 parseError [] = error "Missing output file"
 
@@ -345,7 +353,7 @@ data CreateVar = IntVar String IntExp | BoolVar String BoolExp | StringVar Strin
 data CreateVars = UVarEnv CreateVar | VarEnv CreateVar CreateVars
      deriving Show
      
-data Query = OutputQuery FilteredQuery | WriteQuery FilteredQuery String
+data Query = OutputQuery String FilteredQuery | WriteQuery String FilteredQuery String
      deriving Show
 
 data FilteredQuery = NewQuery BasicQuery | WhereQuery BasicQuery CreateVars
@@ -354,7 +362,7 @@ data FilteredQuery = NewQuery BasicQuery | WhereQuery BasicQuery CreateVars
 data BasicQuery = FuncStack Func | FuncStackSeq Func BasicQuery
      deriving Show
 
-data Cond = Always Action | ActionSeq Action Action | If BoolExp Cond Cond
+data Cond = Always Action | ActionSeq Action Cond | If BoolExp Cond Cond
      deriving Show
 
 data Action = AssignSubj Subject Url | AssignPred Predicate Url | AssignObjUrl Object Url 
@@ -382,8 +390,8 @@ data LiteralList = LiteralLst LiteralElems | AnyLit
 data LiteralElems = LiteralSeq Literal LiteralElems | SingleLit Literal 
      deriving Show
 
-data Func = Map Cond SList | Union SList | NormalJoin Node Node SList | Join JoinOption Node Node SList |
-            Filter FilterEl FilterEl LiteralList
+data Func = Map Cond | Union SList | NormalJoin Node Node SList | Join JoinOption Node Node SList |
+            Filter FilterEl FilterEl LiteralList | Add Url Url Literal
      deriving Show     
 
 
