@@ -91,11 +91,11 @@ CreateVar : var '=' IntExp                                  { IntVar $1 $3 }
 
 -- Functions that return RDF Graphs are listed here
 Func : filter '(' FilterEl ',' FilterEl ',' LiteralList ')' { Filter $3 $5 $7 }
-     -- | map '('Cond')'                                       { Map $3}
+     | map '('Cond')'                                       { Map $3}
      | union SList                                          { Union $2 }
      | join '('Node',' Node')' SList                        { NormalJoin $3 $5 $7 }
      | join JoinOption '('Node',' Node')' SList             { Join $2 $4 $6 $8 }
-     | add '(' Url ',' Url ',' Literal ')'                  { Add $3 $5 $7 }
+     | add '(' Url ',' Url ',' Literal ')'                  { AddTrip $3 $5 $7 }
      
 -- DONE
 -- The parameters allowed in the filter function
@@ -408,6 +408,7 @@ data Cond = Always Action | ActionSeq Action Cond | If BoolExp Cond Cond
 
 data Action = AssignSubj Subject Url | AssignPred Predicate Url | AssignObjUrl Object Url 
             | AssignObjStr Object StringExp | AssignObjInt Object IntExp | AssignObjBool Object BoolExp
+            | Add Url Url Literal
      deriving Show
      
 data JoinOption = BidirectJoin | LeftJoin | RightJoin
@@ -432,7 +433,7 @@ data LiteralElems = LiteralSeq Literal LiteralElems | SingleLit Literal
      deriving Show
 
 data Func = Map Cond | Union SList | NormalJoin Node Node SList | Join JoinOption Node Node SList |
-            Filter FilterEl FilterEl LiteralList | Add Url Url Literal
+            Filter FilterEl FilterEl LiteralList | AddTrip Url Url Literal
      deriving Show     
 
 
