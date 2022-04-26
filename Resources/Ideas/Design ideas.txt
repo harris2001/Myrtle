@@ -44,7 +44,6 @@ map (length(object) > 3)? object = object + 1 : object = 0
 
 -- Todo
 map (func) "input.ttl"
-replace (x,y,"a") (x,y,"b") "input.ttl"
 rem (a,b,(obj > 99)) "input.ttl"
 first "input.ttl"
 last "input.ttl"

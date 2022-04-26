@@ -64,16 +64,16 @@ evalBoolObj boolExp env = \o -> evalSimpleBool boolExp env
 
 evalUBool :: BoolExp -> [Env] -> (MyrtleParser.Url -> Bool)
 evalUBool (EQUU (NewUrl x) (NewUrl y)) env = \o -> x == y
-evalUBool (EQSU _ (NewUrl x)) = \(NewUrl s) -> s == x
-evalUBool (EQUS (NewUrl x) _) = \(NewUrl s) -> x == s
-evalUBool (EQPU _ (NewUrl x)) = \(NewUrl p) -> p == x
-evalUBool (EQUP (NewUrl x) _) = \(NewUrl p) -> x == p
-evalUBool (EQOU _ (NewUrl x)) = \(NewUrl o) -> o == x
-evalUBool (EQUO (NewUrl x) _) = \(NewUrl o) -> x == o
+evalUBool (EQSU _ (NewUrl x)) env = \(NewUrl s) -> s == x
+evalUBool (EQUS (NewUrl x) _) env = \(NewUrl s) -> x == s
+evalUBool (EQPU _ (NewUrl x)) env = \(NewUrl p) -> p == x
+evalUBool (EQUP (NewUrl x) _) env = \(NewUrl p) -> x == p
+evalUBool (EQOU _ (NewUrl x)) env = \(NewUrl o) -> o == x
+evalUBool (EQUO (NewUrl x) _) env = \(NewUrl o) -> x == o
 
 evalSBool :: BoolExp -> (String -> Bool)
 evalSBool (EQSS (QString x) (QString y)) = \o -> x == y
-evalSBool (EQSO (QString x) _) = \(StrObj o -> x == o
+evalSBool (EQSO (QString x) _) = \o -> x == o
 evalSBool (EQOS _ (QString x)) = \o -> o == x
 
 ------------------------------------------------------------------------------------------
@@ -137,10 +137,6 @@ evalIntExp (ExpoOO _ _) env = \o -> ((getIntObj o) ^ (getIntObj o))
 evalIntExp (NegateO _) env = \o -> (-1*(getIntObj o))
 evalIntExp x env = \o -> evalInt x env
 
--- DONE --
-evalSimpleStr :: StringExp -> [Env] -> String
-evalSimpleStr (QString s) envs = s
-
 --------------------------------------------------------------------------------------
 --                          Getting the type of an object                           --
 --------------------------------------------------------------------------------------
@@ -166,64 +162,61 @@ isStrObj _ = False
 --                        Getting the type of an expression                         --
 --------------------------------------------------------------------------------------
 
-isIntEval :: IntExp -> Bool
-isIntEval (PlusOI _ x) = True
-isIntEval (PlusIO x _) = True
-isIntEval (PlusOO _ _) = True
-isIntEval (MinusOI _ x) = True
-isIntEval (MinusIO x _) = True
-isIntEval (MinusOO _ _) = True
-isIntEval (TimesOI _ x) = True
-isIntEval (TimesIO x _) = True
-isIntEval (TimesOO _ _) = True
-isIntEval (DivOI _ x) = True
-isIntEval (DivIO x _) = True
-isIntEval (DivOO _ _) = True
-isIntEval (ExpoOI _ x) = True
-isIntEval (ExpoIO x _) = True
-isIntEval (ExpoOO _ _) = True
-isIntEval (NegateO _) = True
-isIntEval _ = False
+-- isIntEval :: IntExp -> Bool
+-- isIntEval (PlusOI _ x) = True
+-- isIntEval (PlusIO x _) = True
+-- isIntEval (PlusOO _ _) = True
+-- isIntEval (MinusOI _ x) = True
+-- isIntEval (MinusIO x _) = True
+-- isIntEval (MinusOO _ _) = True
+-- isIntEval (TimesOI _ x) = True
+-- isIntEval (TimesIO x _) = True
+-- isIntEval (TimesOO _ _) = True
+-- isIntEval (DivOI _ x) = True
+-- isIntEval (DivIO x _) = True
+-- isIntEval (DivOO _ _) = True
+-- isIntEval (ExpoOI _ x) = True
+-- isIntEval (ExpoIO x _) = True
+-- isIntEval (ExpoOO _ _) = True
+-- isIntEval (NegateO _) = True
+-- isIntEval (PlusII _ _ )  = True
+-- isIntEval (MinusII _ _ ) = True
+-- isIntEval (TimesII _ _ ) = True
+-- isIntEval (DivII _ _ ) = True
+-- isIntEval (ExpoII _ _ ) = True
+-- isIntEval (QInt _ ) = True
+-- isIntEval (NegateI _ ) = True
+-- isIntEval (IntVariable _ ) = True
+-- isIntEval _ = False
+-- isIntEval _ = False
 
-isBoolEval :: BoolExp -> Bool
-isBoolEval (GTIO x _) = True 
-isBoolEval (GTOI _ x) = True 
-isBoolEval (LTIO x _) = True 
-isBoolEval (LTOI _ x) = True 
-isBoolEval (EQIO x _) = True 
-isBoolEval (EQOI _ x) = True 
-isBoolEval (AndIO x _)= True 
-isBoolEval (AndOI _ x)= True 
-isBoolEval (OrIO x _) = True 
-isBoolEval (OrOI _ x) = True 
-isBoolEval (EQBO x _) = True 
-isBoolEval (EQOB _ x) = True 
-isBoolEval QTrue = True
-isBoolEval QFalse = True
-isBoolEval (And x y) = True
-isBoolEval (Or x y) = True
-isBoolEval (EQBB x y) = True 
-isBoolEval (GTII x y) = True 
-isBoolEval (LTII x y) = True 
-isBoolEval (EQII x y) = True 
-isBoolEval boolExp = True 
-isBoolEval _ = False
+-- isBoolEval :: BoolExp -> Bool
+-- isBoolEval QTrue = True
+-- isBoolEval QFalse = True
+-- isBoolEval (And x y) = True
+-- isBoolEval (Or x y) = True
+-- isBoolEval (EQBB x y) = True 
+-- isBoolEval (GTII x y) = True 
+-- isBoolEval (LTII x y) = True 
+-- isBoolEval (EQII x y) = True 
+-- isBoolEval boolExp = True 
+-- isBoolEval _ = False
 
-isStrEval :: BoolExp -> Bool
-isStrEval (EQSS _ _) = True
-isStrEval (EQSO _ _) = True
-isStrEval (EQOS _ _) = True
-isStrEval _ = False
+-- isStrEval :: BoolExp -> Bool
+-- isStrEval (EQSS _ _) = True
+-- isStrEval (EQSO _ _) = True
+-- isStrEval (EQOS _ _) = True
+-- isStrEval _ = False
 
-isUrlEval :: BoolExp -> Bool
-isUrlEval (EQUU _ _ ) = True
-isUrlEval (EQSU _ _ ) = True
-isUrlEval (EQUS _ _ ) = True
-isUrlEval (EQPU _ _ ) = True
-isUrlEval (EQUP _ _ ) = True
-isUrlEval (EQOU _ _ ) = True
-isUrlEval (EQUO _ _ ) = True
-isUrlEval _ = False
+-- isUrlEval :: BoolExp -> Bool
+-- isUrlEval (EQUU _ _ ) = True
+-- isUrlEval (EQSU _ _ ) = True
+-- isUrlEval (EQUS _ _ ) = True
+-- isUrlEval (EQPU _ _ ) = True
+-- isUrlEval (EQUP _ _ ) = True
+-- isUrlEval (EQOU _ _ ) = True
+-- isUrlEval (EQUO _ _ ) = True
+-- isUrlEval _ = False
 
 --------------------------------------------------------------------------------------
 --                          Returns the value of a variable                         --
@@ -257,11 +250,6 @@ getIntObj :: TTLObject -> Int
 getIntObj (IntObj x) = x
 getIntObj x = error ("Object "++show x++" is not an integer")
 
-isIntObj :: TTLObject -> Bool
-isIntObj (IntObj x) = True
-isIntObj _ = False
-
-
 getBoolObj :: TTLObject -> Bool
 getBoolObj (TTLBoolObj x) = x
 getBoolObj x = error ("Object "++show x++" is not a boolean")
@@ -273,34 +261,6 @@ getStrObj x = error ("Object "++show x++" is not a string")
 getUrlObj :: TTLObject -> String
 getUrlObj (UrlObj (FinalUrl x)) = x
 getUrlObj x = error ("Object "++show x++" is not a URI")
-
-isBoolObj :: TTLObject -> Bool
-isBoolObj (TTLBoolObj x) = True
-isBoolObj _ = False
-
-isUrlObj :: TLLObject -> Bool
-isUrlObj (UrlObj _) = True
-isUrlObj _ = False
-
-isUrlEval :: BoolExp -> Bool
-isUrlEval (EQUU _ _ ) = True
-isUrlEval (EQSU _ _ ) = True
-isUrlEval (EQUS _ _ ) = True
-isUrlEval (EQPU _ _ ) = True
-isUrlEval (EQUP _ _ ) = True
-isUrlEval (EQOU _ _ ) = True
-isUrlEval (EQUO _ _ ) = True
-isUrlEval _ = False
-
-isStrObj :: TTLObject -> Bool
-isStrObj (StrObj _) = True
-isStrObj _ = False
-
-isStrEval :: BoolExp -> Bool
-isStrEval (EQSS _ _) = True
-isStrEval (EQSO _ _) = True
-isStrEval (EQOS _ _) = True
-isStrEval _ = False
 
 --Literal
 lookupEnv :: [Env] -> String -> Int

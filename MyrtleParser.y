@@ -53,6 +53,7 @@ import Data.List
   startsWith     { TokenStarts _ }
 
 %left "," ";" "."
+%right var
 %left '='
 %left '+' '-' or
 %left '*' '/' and
@@ -90,7 +91,7 @@ CreateVar : var '=' IntExp                                  { IntVar $1 $3 }
 
 -- Functions that return RDF Graphs are listed here
 Func : filter '(' FilterEl ',' FilterEl ',' LiteralList ')' { Filter $3 $5 $7 }
-     | map '('Cond')'                                       { Map $3 }
+     -- | map '('Cond')'                                       { Map $3}
      | union SList                                          { Union $2 }
      | join '('Node',' Node')' SList                        { NormalJoin $3 $5 $7 }
      | join JoinOption '('Node',' Node')' SList             { Join $2 $4 $6 $8 }
@@ -156,32 +157,53 @@ LiteralElems : Literal                                  { SingleLit $1 }
 IntExp : IntExp '+' IntExp                   { PlusII $1 $3 }
        | Object '+' IntExp                   { PlusOI $1 $3 } 
        | IntExp '+' Object                   { PlusIO $1 $3 } 
-       | Object '+' Object                   { PlusOO $1 $3 } 
+       | Object '+' Object                   { PlusOO $1 $3 }
+       | var '+' Object                      { PlusVO $1 $3 }
+       | Object '+' var                      { PlusOV $1 $3 }
+       | var '+' IntExp                      { PlusVI $1 $3 }
+       | IntExp '+' var                      { PlusIV $1 $3 }
        
        | IntExp '-' IntExp                   { MinusII $1 $3 }
        | Object '-' IntExp                   { MinusOI $1 $3 }
        | IntExp '-' Object                   { MinusIO $1 $3 }
        | Object '-' Object                   { MinusOO $1 $3 }
+       | var '-' Object                      { MinusVO $1 $3 }
+       | Object '-' var                      { MinusOV $1 $3 }
+       | var '-' IntExp                      { MinusVI $1 $3 }
+       | IntExp '-' var                      { MinusIV $1 $3 }
        
        | IntExp '*' IntExp                   { TimesII $1 $3 }
        | Object '*' IntExp                   { TimesOI $1 $3 }
        | IntExp '*' Object                   { TimesIO $1 $3 }
        | Object '*' Object                   { TimesOO $1 $3 }
+       | var '*' Object                      { TimesVO $1 $3 }
+       | Object '*' var                      { TimesOV $1 $3 }
+       | var '*' IntExp                      { TimesVI $1 $3 }
+       | IntExp '*' var                      { TimesIV $1 $3 }
 
        | IntExp '/' IntExp                   { DivII $1 $3 }
        | Object '/' IntExp                   { DivOI $1 $3 }
        | IntExp '/' Object                   { DivIO $1 $3 }
        | Object '/' Object                   { DivOO $1 $3 }
+       | var '/' Object                      { DivVO $1 $3 }
+       | Object '/' var                      { DivOV $1 $3 }
+       | var '/' IntExp                      { DivVI $1 $3 }
+       | IntExp '/' var                      { DivIV $1 $3 }
 
        | IntExp '^' IntExp                   { ExpoII $1 $3 }
        | Object '^' IntExp                   { ExpoOI $1 $3 }
        | IntExp '^' Object                   { ExpoIO $1 $3 }
        | Object '^' Object                   { ExpoOO $1 $3 }
+       | var '^' Object                      { ExpoVO $1 $3 }
+       | Object '^' var                      { ExpoOV $1 $3 }
+       | var '^' IntExp                      { ExpoVI $1 $3 }
+       | IntExp '^' var                      { ExpoIV $1 $3 }
 
        | '(' IntExp ')'                      { $2 } 
        
        | '-' IntExp %prec NEG                { NegateI $2 } 
        | '-' Object %prec NEG                { NegateO $2 } 
+       | '-' var %prec NEG                   { NegateV $2 }
 
        | int                                 { QInt $1 }
        | var                                 { IntVariable $1 }
@@ -206,11 +228,13 @@ BoolExp : BoolExp and BoolExp                         { And $1 $3 }
         | IntExp '<' IntExp                           { LTII $1 $3 }
         | IntExp '<' Object                           { LTIO $1 $3 }
         | Object '<' IntExp                           { LTOI $1 $3 }
+     --    | var '<' Object                              { LTVO $1 $3 }
 
         | IntExp deq IntExp                           { EQII $1 $3 }
         | BoolExp deq BoolExp                         { EQBB $1 $3 }
         | StringExp deq StringExp                     { EQSS $1 $3 }
         | Url deq Url                                 { EQUU $1 $3 }
+     --    | Object deq var                              { EQOV $1 $3 }
 
         | Object deq IntExp                           { EQOI $1 $3 }
         | IntExp deq Object                           { EQIO $1 $3 }
@@ -330,9 +354,14 @@ data IntExp = PlusII IntExp IntExp | PlusOI Object IntExp | PlusIO IntExp Object
               DivII IntExp IntExp | DivOI Object IntExp | DivIO IntExp Object | DivOO Object Object |
               ExpoII IntExp IntExp | ExpoOI Object IntExp | ExpoIO IntExp Object | ExpoOO Object Object |
               QInt Int |
-              NegateI IntExp |  NegateO Object |
-              IntVariable String |
-              Length String | LengthObj
+              Length String | LengthObj |
+              NegateI IntExp |  NegateO Object | NegateV String |
+              -- The following rules allow variables ^^ to perform operations on integer expressions
+              PlusVO String Object | PlusOV Object String | PlusVI String IntExp | PlusIV IntExp String |
+              MinusVO String Object | MinusOV Object String | MinusVI String IntExp | MinusIV IntExp String |
+              TimesVO String Object | TimesOV Object String | TimesVI String IntExp | TimesIV IntExp String |
+              DivVO String Object | DivOV Object String | DivVI String IntExp | DivIV IntExp String |
+              ExpoVO String Object | ExpoOV Object String | ExpoVI String IntExp | ExpoIV IntExp String 
      deriving Show
      
 -- TODO change Nodes in doc
@@ -347,6 +376,7 @@ data BoolExp = And BoolExp BoolExp | AndIO BoolExp Object | AndOI Object BoolExp
              | EQSU Subject Url | EQUS Url Subject
              | EQPU Predicate Url | EQUP Url Predicate
              | EQOU Object Url | EQUO Url Object
+             | EQOV Object String
             --  | BoolVariable BoolExp | BoolObj Object
              | QTrue | QFalse
              | StartsWithStr String String | StartsWithUrl String Url

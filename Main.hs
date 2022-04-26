@@ -83,7 +83,6 @@ evalSimpleQ (FuncStackSeq f q) tri env = do result <- (evalFunc f tri env)
 evalFunc :: Func -> [TTLTriplet] -> [Env] -> IO ([TTLTriplet])
 evalFunc (Union slist) tri _ = do graphs <- (return_rdf (uniq (processingSlist slist)))
                                   return (union_backend ([tri]++graphs))
-evalFunc (Map cond) tri env = return (mapBackend tri cond env)
 evalFunc (Filter filterSubj filterPred list) tri env = return (filterBackend tri env (filterSubj, filterPred, list))
 
 -- Takes a list of turtle files and prints them
@@ -125,16 +124,14 @@ union_backend [[]] = []
 union_backend (x:xs) = x++union_backend xs
 
 -- Filter_Backend: 
-
 filterBackend :: [TTLTriplet] -> [Env] -> (FilterEl, FilterEl, LiteralList) -> [TTLTriplet]
 filterBackend [] env (_,_,_)= [] --error "Query GET needs to be passed a file to execute \n Specify file by SELECT FROM \"$filename.ttl\""
 filterBackend (tri@(Triplet (Sbj subj)(PredObj (TTLPred pred) obj)):xs) env (s,p,o) | ( ((anything s) || (elem (getUrl subj) (filterToList s))) && ((anything p) || (elem (getUrl pred) (filterToList p))) && ((anythinglit o) || (filterObjectList obj o env)))  = [tri]++(filterBackend xs env (s,p,o))
                                                                                     | otherwise = filterBackend xs env (s,p,o)
-                                                                      filterObjectList :: TTLObject -> LiteralList -> [Env] -> Bool
-filterObjectList _ AnyLit _ = True
+
+filterObjectList :: TTLObject -> LiteralList -> [Env] -> Bool
 filterObjectList obj (LiteralLst(LiteralSeq lit lits)) env = (filterObject obj lit env ) || (filterObjectList obj (LiteralLst lits) env)
 filterObjectList obj (LiteralLst(SingleLit lit)) env = filterObject obj lit env
-
 
 filterObject :: TTLObject -> Literal -> [Env] -> Bool
 filterObject (UrlObj (FinalUrl url)) (UrlLit (NewUrl url2)) env = url==url2
@@ -142,29 +139,6 @@ filterObject obj@(IntObj int) (BoolLit boolexp) env = (evalBoolObj boolexp env) 
 filterObject obj@(TTLBoolObj bool) (BoolLit boolexp) env  = (evalBoolObj boolexp env) obj
 filterObject obj@(StrObj str) (StrLit str2) env = str == (evalSimpleStr str2 env) 
 filterObject _ _ _ = False
-
-
--- Map_Backend:
-mapBackend :: [TTLTriplet] -> Cond -> [Env] -> [TTLTriplet]
-mapBackend graph cond env = concat $ map (evalCond cond env []) graph
-
-evalCond :: Cond -> [Env] -> [TTLTriplet] -> TTLTriplet -> [TTLTriplet]
-evalCond (Always (AssignSubj _ (NewUrl url))) _ acc (Triplet _ po) = ((Triplet (Sbj (FinalUrl url)) po):acc)
-evalCond (Always (AssignPred _ (NewUrl url))) _ acc (Triplet s (PredObj _ o)) = ((Triplet s (PredObj (TTLPred (FinalUrl url)) o)):acc)
-evalCond (Always (AssignObjUrl _ (NewUrl url))) _ acc (Triplet s (PredObj p _)) = ((Triplet s (PredObj p (UrlObj (FinalUrl url)))):acc)
-evalCond (Always (AssignObjStr _ (QString str))) _ acc (Triplet s (PredObj p _)) = ((Triplet s (PredObj p (StrObj str))):acc)
-evalCond (Always (AssignObjInt _ intexp)) env acc t@(Triplet s (PredObj p o)) | isIntObj o = ((Triplet s (PredObj p (IntObj (evalIntExp intexp env o)))):acc)
-evalCond (Always (AssignObjBool _ boolexp)) env acc t@(Triplet s (PredObj p o)) | isUrlObj o && isUrlEval boolexp = ((Triplet s (PredObj p (TTLBoolObj (evalUBool boolexp env o)))):acc)
-                                                                                | isStrObj o && isStrEval boolexp = ((Triplet s (PredObj p (TTLBoolObj (evalSBool boolexp env o)))):acc)
-                                                                                | isBoolObj o = ((Triplet s (PredObj p (TTLBoolObj (evalBoolObj boolexp env o)))):acc)
-                                                                            -- CASE WHERE THE OBJECT IS AN INT
-evalCond (Always (Add (NewUrl x) (NewUrl y) o)) env acc _ | isIntEval o = ((Triplet (Sbj (FinalUrl x)) (PredObj (TTLPred (FinalUrl y)) (IntObj (evalInt o env)))):acc)
-                                                          | isBoolEval o = ((Triplet (Sbj (FinalUrl x)) (PredObj (TTLPred (FinalUrl y)) (IntObj (evalSimpleBool o env)))):acc)
-evalCond (ActionSeq action cond) env acc triplet = evalCond cond env (evalCond (Always action) env triplet) triplet
-evalCond (If boolexp condTrue condFalse) env acc t@(Triplet _ (PredObj _ o)) | evalBoolObj boolexp env o = evalCond condTrue env acc t
-                                                                             | otherwise = evalCond condFalse env acc t
-evalCond _ _ _ triplet = triplet
-
 
 --Returns true if all subjects/objects are allowed ('_')
 anything :: FilterEl -> Bool
