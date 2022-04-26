@@ -144,7 +144,7 @@ Literal : IntExp                                        { IntLit $1 }
         | StringExp                                     { StrLit $1 }
         | Url                                           { UrlLit $1 }
 
-LiteralList : '_'                                           { Any }
+LiteralList : '_'                                           { AnyLit }
             | '[' LiteralElems ']'                          { LiteralLst $2 }
 
 LiteralElems : Literal                                  { SingleLit $1 }

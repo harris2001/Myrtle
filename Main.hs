@@ -130,11 +130,11 @@ filterBackend (tri@(Triplet (Sbj subj)(PredObj (TTLPred pred) obj)):xs) (s,p,o) 
                                                                       
 filterObjectList :: TTLObject -> LiteralList -> Bool
 -- filterObjectList _ _ = True
+filterObjectList _ AnyLit = True
 filterObjectList obj (LiteralLst(LiteralSeq lit lits)) = (filterObject obj lit) || (filterObjectList obj (LiteralLst lits))
 filterObjectList obj (LiteralLst(SingleLit lit)) = filterObject obj lit
 
 filterObject :: TTLObject -> Literal -> Bool
-filterObject _ AnyLit = True
 filterObject (UrlObj (FinalUrl url)) (UrlLit (NewUrl url2)) = url==url2
 filterObject obj@(IntObj int) (BoolLit boolexp) = (evalBoolObj boolexp[]) obj 
 filterObject obj@(TTLBoolObj bool) (BoolLit boolexp) = (evalBoolObj boolexp[]) obj
@@ -152,11 +152,12 @@ evalCond (Always (AssignObjUrl _ (NewUrl url))) _ (Triplet s (PredObj p _)) = Tr
 evalCond (Always (AssignObjStr _ (QString str))) _ (Triplet s (PredObj p _)) = Triplet s (PredObj p (StrObj str))
 evalCond (Always (AssignObjInt _ intexp)) env t@(Triplet s (PredObj p o)) | isIntObj o = Triplet s (PredObj p (IntObj (evalIntExp intexp env o)))
                                                                           | otherwise = t
-evalCond (Always (AssignObjBool _ boolexp)) env t@(Triplet s (PredObj p o)) | isBoolObj o = Triplet s (PredObj p (TTLBoolObj (evalBoolObj boolexp env o)))
-                                                                            | otherwise = t
+evalCond (Always (AssignObjBool _ boolexp)) env t@(Triplet s (PredObj p o)) | isUrlObj o && isUrlEval boolexp = Triplet s (PredObj p (TTLBoolObj (evalUBool boolexp env o)))
+                                                                            | isStrObj o && isStrEval boolexp = Triplet s (PredObj p (TTLBoolObj (evalSBool boolexp env o)))
+                                                                            | isBoolObj o = Triplet s (PredObj p (TTLBoolObj (evalBoolObj boolexp env o)))
+                                                                            -- CASE WHERE THE OBJECT IS AN INT
 evalCond (ActionSeq action cond) env triplet = evalCond cond env $ evalCond (Always action) env triplet
 evalCond (If boolexp condTrue condFalse) env t@(Triplet _ (PredObj _ o)) | evalBoolObj boolexp env o = evalCond condTrue env t
-                                                                         | otherwise = evalCond condFalse env t
 evalCond _ _ triplet = triplet
 
 --Returns true if every subject is allowed ('_')

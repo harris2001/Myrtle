@@ -1705,7 +1705,7 @@ happyReduction_44 _  = notHappyAtAll
 happyReduce_45 = happySpecReduce_1  18 happyReduction_45
 happyReduction_45 _
 	 =  HappyAbsSyn18
-		 (Any
+		 (AnyLit
 	)
 
 happyReduce_46 = happySpecReduce_3  18 happyReduction_46
