@@ -19,8 +19,8 @@ evalSimpleBool (EQBB x y) env = (evalSimpleBool x env) == (evalSimpleBool y env)
 evalSimpleBool (GTII x y) env = (evalInt x env) > (evalInt y env)
 evalSimpleBool (LTII x y) env = (evalInt x env) < (evalInt y env)
 evalSimpleBool (EQII x y) env = (evalInt x env) == (evalInt y env)
-evalSimpleBool (StartsWithStr s1 s2) = isPrefixOf s1 s2
-evalSimpleBool (StartsWithUrl s (NewUrl u)) = isPrefixOf s u
+evalSimpleBool (StartsWithStr s1 s2) env = isPrefixOf s1 s2
+evalSimpleBool (StartsWithUrl s (NewUrl u)) env = isPrefixOf s u
 -- evalSimpleBool (IntVariable str) env = (lookupBoolEnv env str)
 evalSimpleBool _ _ = error "Subject conditions cannot be used inside the where clause"
 
@@ -101,7 +101,7 @@ evalInt (DivII x1 x2) env = ((evalInt x1 env) `div` (evalInt x2 env))
 evalInt (ExpoII x1 x2) env = ((evalInt x1 env) ^ (evalInt x2 env))
 evalInt (QInt int) env = int 
 evalInt (NegateI x) env = (-1*(evalInt x env))
-evalInt (IntVariable str) env = (lookupIntEnv env str)
+-- evalInt (IntVariable str) env = (lookupIntEnv env str)
 evalInt (Length str) _ = length(str)
 evalInt _ _ = error "Integer expressions on objects cannot be used inside the where clause"
 
@@ -113,7 +113,7 @@ isIntEval (DivII _ _ ) = True
 isIntEval (ExpoII _ _ ) = True
 isIntEval (QInt _ ) = True
 isIntEval (NegateI _ ) = True
-isIntEval (IntVariable _ ) = True
+-- isIntEval (IntVariable _ ) = True
 isIntEval (Length _) = True
 isIntEval LengthObj = True
 isIntEval _ = False

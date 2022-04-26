@@ -206,7 +206,6 @@ IntExp : IntExp '+' IntExp                   { PlusII $1 $3 }
        | '-' var %prec NEG                   { NegateV $2 }
 
        | int                                 { QInt $1 }
-       | var                                 { IntVariable $1 }
 
        | length '(' string ')'               { Length $3 }
        | length '(' Object ')'               { LengthObj }
