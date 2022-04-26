@@ -39,7 +39,6 @@ $white+       ;
   \?             { tok (\p s -> TokenQuestion p) }
   \:             { tok (\p s -> TokenColon p) }
   \_             { tok (\p s -> TokenAll p) }
-  get            { tok (\p s -> TokenGet p) }
   filter         { tok (\p s -> TokenFilter p) }
   map            { tok (\p s -> TokenMap p) }
   union          { tok (\p s -> TokenUnion p) }
@@ -118,8 +117,7 @@ data LangToken =
   TokenVariable AlexPosn String      |
   TokenPrefix AlexPosn               |
   TokenBase AlexPosn                 |
-  TokenNumber AlexPosn String        |
-  TokenGet AlexPosn
+  TokenNumber AlexPosn String        
     deriving (Eq,Show) 
 
 tokenPosn :: LangToken -> String
@@ -159,7 +157,6 @@ tokenPosn (TokenOr (AlexPn a l c)) = show(l) ++ ":" ++ show(c)
 tokenPosn (TokenVar (AlexPn a l c) _) = show(l) ++ ":" ++ show(c)
 tokenPosn (TokenString (AlexPn a l c) _) = show(l) ++ ":" ++ show(c)
 tokenPosn (TokenFilename (AlexPn a l c) _) = show(l) ++ ":" ++ show(c)
-tokenPosn (TokenGet (AlexPn a l c) ) = show(l) ++ ":" ++ show(c)
 --
 tokenPosn (TokenDot (AlexPn a l c) ) = show(l) ++ ":" ++ show(c)
 tokenPosn (TokenSemiColon (AlexPn a l c) ) = show(l) ++ ":" ++ show(c)

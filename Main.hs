@@ -64,7 +64,11 @@ printAssignments ((str,BoolVarAss boolexp):env) obj = do putStr (str++": ")
                                                                  print "True"
                                                             else
                                                                  print "False"
-printAssignments _ _ = print "Testing"
+
+printAssignments ((str,StringVarAss strexp):env) obj = do putStr (str++": ")
+                                                          print strexp
+                                                          printAssignments env obj
+
 -- printAssignments ((str,StringVarAss str):env) = do print "("++str++","++evalString(str)++")"
 
 -- Evaluates each query and returns the Final result in the form of list of triplets
@@ -77,7 +81,7 @@ evalSimpleQ (FuncStackSeq f q) tri env = do result <- (evalFunc f tri env)
 evalFunc :: Func -> [TTLTriplet] -> [Env] -> IO ([TTLTriplet])
 evalFunc (Union slist) tri _ = do graphs <- (return_rdf (uniq (processingSlist slist)))
                                   return (union_backend ([tri]++graphs))
-evalFunc (Get filterSubj filterPred list) tri env = return (filterBackend tri env (filterSubj, filterPred, list))
+evalFunc (Filter filterSubj filterPred list) tri env = return (filterBackend tri env (filterSubj, filterPred, list))
 
 -- Takes a list of turtle files and prints them
 print_rdf :: [String] -> IO String
