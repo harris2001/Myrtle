@@ -136,6 +136,7 @@ Action : Subject '=' Url                                    { AssignSubj $1 $3 }
        | Object '=' StringExp                               { AssignObjStr $1 $3 }
        | Object '=' IntExp                                  { AssignObjInt $1 $3 }
        | Object '=' BoolExp                                 { AssignObjBool $1 $3 }
+       | add '(' Url ',' Url ',' Literal ')'                { Add $3 $5 $7 }
        | '(' Action ')'                                     { $2 }
 
 -- Literal includes strings, integers, booleans, and the wildcard any (_)
@@ -144,8 +145,8 @@ Literal : IntExp                                        { IntLit $1 }
         | StringExp                                     { StrLit $1 }
         | Url                                           { UrlLit $1 }
 
-LiteralList : '_'                                           { AnyLit }
-            | '[' LiteralElems ']'                          { LiteralLst $2 }
+LiteralList : '_'                                       { AnyLit }
+            | '[' LiteralElems ']'                      { LiteralLst $2 }
 
 LiteralElems : Literal                                  { SingleLit $1 }
              | Literal ',' LiteralElems                 { LiteralSeq $1 $3 }

@@ -20,6 +20,16 @@ evalSimpleBool (EQII x y) env = (evalInt x env) == (evalInt y env)
 evalSimpleBool _ _ = error "Subject conditions cannot be used inside the where clause"
 -- evalSimpleBool (String x y) env 
 
+isBoolEval :: BoolExp -> Bool
+isBoolEval QTrue = True
+isBoolEval QFalse = True
+isBoolEval (And _ _) = True
+isBoolEval (Or _ _) = True
+isBoolEval (EQBB _ _) = True
+isBoolEval (GTII _ _) = True
+isBoolEval (LTII _ _) = True
+isBoolEval (EQII _ _) = True
+
 evalBoolObj :: BoolExp ->[Env] -> (TTLObject -> Bool)
 -- evalBoolObj _ _ = \o -> False
 evalBoolObj (GTIO x _) env = \o ->  (isIntObj o) && (((evalIntExp x env) o) > (getIntObj o))
@@ -55,7 +65,7 @@ evalUBool (EQUO (NewUrl x) _) = \(NewUrl o) -> x == o
 
 evalSBool :: BoolExp -> (String -> Bool)
 evalSBool (EQSS (QString x) (QString y)) = \o -> x == y
-evalSBool (EQSO (QString x) _) = \o -> x == o
+evalSBool (EQSO (QString x) _) = \(StrObj o -> x == o
 evalSBool (EQOS _ (QString x)) = \o -> o == x
 
 -- DONE --
@@ -68,6 +78,17 @@ evalInt (ExpoII x1 x2) env = ((evalInt x1 env) ^ (evalInt x2 env))
 evalInt (QInt int) env = int 
 evalInt (NegateI x) env = (-1*(evalInt x env))
 evalInt (IntVariable str) env = (lookupEnv env str)
+
+isIntEval :: IntExp -> Bool
+isIntEval (PlusII _ _ )  = True
+isIntEval (MinusII _ _ ) = True
+isIntEval (TimesII _ _ ) = True
+isIntEval (DivII _ _ ) = True
+isIntEval (ExpoII _ _ ) = True
+isIntEval (QInt _ ) = True
+isIntEval (NegateI _ ) = True
+isIntEval (IntVariable _ ) = True
+isIntEval _ = False
 
 evalIntExp :: IntExp -> [Env] -> (TTLObject -> Int)
 evalIntExp (PlusOI _ x) env = \o -> ((getIntObj o) + ((evalIntExp x env)o))
