@@ -49,6 +49,8 @@ import Data.List
   var            { TokenVar _ $$ }
   url            { TokenUrl _ $$ }
   add            { TokenAdd _ }
+  length         { TokenLength _ }
+  startsWith     { TokenStarts _ }
 
 %left "," ";" "."
 %left '='
@@ -88,7 +90,7 @@ CreateVar : var '=' IntExp                                  { IntVar $1 $3 }
 
 -- Functions that return RDF Graphs are listed here
 Func : filter '(' FilterEl ',' FilterEl ',' LiteralList ')' { Filter $3 $5 $7 }
-     | map '('Cond')' SList                                 { Map $3 $5}
+     | map '('Cond')'                                       { Map $3 }
      | union SList                                          { Union $2 }
      | join '('Node',' Node')' SList                        { NormalJoin $3 $5 $7 }
      | join JoinOption '('Node',' Node')' SList             { Join $2 $4 $6 $8 }
@@ -177,13 +179,15 @@ IntExp : IntExp '+' IntExp                   { PlusII $1 $3 }
        | Object '^' Object                   { ExpoOO $1 $3 }
 
        | '(' IntExp ')'                      { $2 } 
-     --   | '(' Object ')'                      { $2 } 
        
        | '-' IntExp %prec NEG                { NegateI $2 } 
        | '-' Object %prec NEG                { NegateO $2 } 
 
        | int                                 { QInt $1 }
        | var                                 { IntVariable $1 }
+
+       | length '(' string ')'               { Length $3 }
+       | length '(' Object ')'               { LengthObj }
        
 -- DONE --
 -- Boolean Expression
@@ -228,6 +232,10 @@ BoolExp : BoolExp and BoolExp                         { And $1 $3 }
         
         | true                                        { QTrue }
         | false                                       { QFalse }
+
+        | startsWith '(' string ',' string ')'        { StartsWithStr $3 $5 }
+        | startsWith '(' string ',' Url ')'           { StartsWithUrl $3 $5 }
+        | startsWith '(' string ',' Object ')'        { StartsWithObj $3 }
 
 -- DONE --
 -- String Expression
@@ -291,9 +299,10 @@ parseError ((TokenAnd (AlexPn _ l c)) : xs) = error (printing l c)
 parseError ((TokenOr (AlexPn _ l c))  : xs) = error (printing l c)
 parseError ((TokenVar (AlexPn _ l c) _ )  : xs) = error (printing l c)
 parseError ((TokenAdd (AlexPn _ l c)) : xs) = error (printing l c)
-parseError ((TokenGet (AlexPn _ l c))  : xs) = error (printing l c)
 parseError ((TokenUrl (AlexPn _ l c) _ )  : xs) = error (printing l c)
 parseError ((TokenFilename (AlexPn _ l c) _ )  : xs) = error (printing l c)
+parseError ((TokenLength (AlexPn _ l c))  : xs) = error (printing l c)
+parseError ((TokenStarts (AlexPn _ l c))  : xs) = error (printing l c)
 
 parseError [] = error "Missing output file"
 
@@ -322,7 +331,8 @@ data IntExp = PlusII IntExp IntExp | PlusOI Object IntExp | PlusIO IntExp Object
               ExpoII IntExp IntExp | ExpoOI Object IntExp | ExpoIO IntExp Object | ExpoOO Object Object |
               QInt Int |
               NegateI IntExp |  NegateO Object |
-              IntVariable String
+              IntVariable String |
+              Length String | LengthObj
      deriving Show
      
 -- TODO change Nodes in doc
@@ -339,6 +349,8 @@ data BoolExp = And BoolExp BoolExp | AndIO BoolExp Object | AndOI Object BoolExp
              | EQOU Object Url | EQUO Url Object
             --  | BoolVariable BoolExp | BoolObj Object
              | QTrue | QFalse
+             | StartsWithStr String String | StartsWithUrl String Url
+             | StartsWithObj String
      deriving Show
 
 data SList = StrList SListElem | StrListSingle String

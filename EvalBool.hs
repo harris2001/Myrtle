@@ -2,6 +2,7 @@ module EvalBool where
 
 import MyrtleParser
 import RDF_Parser
+import Data.List
 
 data Assignment = IntVarAss Int | BoolVarAss Bool | StringVarAss String | UrlVarAss MyrtleParser.Url
     deriving Show
@@ -18,6 +19,8 @@ evalSimpleBool (EQBB x y) env = (evalSimpleBool x env) == (evalSimpleBool y env)
 evalSimpleBool (GTII x y) env = (evalInt x env) > (evalInt y env)
 evalSimpleBool (LTII x y) env = (evalInt x env) < (evalInt y env)
 evalSimpleBool (EQII x y) env = (evalInt x env) == (evalInt y env)
+evalSimpleBool (StartsWithStr s1 s2) = isPrefixOf s1 s2
+evalSimpleBool (StartsWithUrl s (NewUrl u)) = isPrefixOf s u
 -- evalSimpleBool (IntVariable str) env = (lookupBoolEnv env str)
 evalSimpleBool _ _ = error "Subject conditions cannot be used inside the where clause"
 
@@ -30,6 +33,10 @@ isBoolEval (EQBB _ _) = True
 isBoolEval (GTII _ _) = True
 isBoolEval (LTII _ _) = True
 isBoolEval (EQII _ _) = True
+isBoolEval (StartsWithStr _ _) = True
+isBoolEval (StartsWithUrl _ _) = True
+isBoolEval (StartsWithObj _) = True
+isBoolEval _ = False
 
 evalBoolObj :: BoolExp ->[Env] -> (TTLObject -> Bool)
 evalBoolObj (GTIO x _) env = \o ->  (isIntObj o) && (((evalIntExp x env) o) > (getIntObj o))
@@ -52,6 +59,7 @@ evalBoolObj (EQBB x y) env = \o -> (evalBoolObj x env o) == (evalBoolObj y env o
 evalBoolObj (GTII x y) env = \o -> (evalInt x env) > (evalInt y env)
 evalBoolObj (LTII x y) env = \o -> (evalInt x env) < (evalInt y env)
 evalBoolObj (EQII x y) env = \o -> (evalInt x env) == (evalInt y env)
+evalBoolObj (StartsWithObj s) env = \o -> (isStrObj o && isPrefixOf s (getStrObj o)) || (isUrlObj o && isPrefixOf s (getUrlObj o))
 evalBoolObj boolExp env = \o -> evalSimpleBool boolExp env
 
 evalUBool :: BoolExp -> [Env] -> (MyrtleParser.Url -> Bool)
@@ -94,6 +102,7 @@ evalInt (ExpoII x1 x2) env = ((evalInt x1 env) ^ (evalInt x2 env))
 evalInt (QInt int) env = int 
 evalInt (NegateI x) env = (-1*(evalInt x env))
 evalInt (IntVariable str) env = (lookupIntEnv env str)
+evalInt (Length str) _ = length(str)
 evalInt _ _ = error "Integer expressions on objects cannot be used inside the where clause"
 
 isIntEval :: IntExp -> Bool
@@ -105,6 +114,8 @@ isIntEval (ExpoII _ _ ) = True
 isIntEval (QInt _ ) = True
 isIntEval (NegateI _ ) = True
 isIntEval (IntVariable _ ) = True
+isIntEval (Length _) = True
+isIntEval LengthObj = True
 isIntEval _ = False
 
 evalIntExp :: IntExp -> [Env] -> (TTLObject -> Int)
@@ -255,6 +266,13 @@ getBoolObj :: TTLObject -> Bool
 getBoolObj (TTLBoolObj x) = x
 getBoolObj x = error ("Object "++show x++" is not a boolean")
 
+getStrObj :: TTLObject -> String
+getStrObj (StrObj x) = x
+getStrObj x = error ("Object "++show x++" is not a string")
+
+getUrlObj :: TTLObject -> String
+getUrlObj (UrlObj (FinalUrl x)) = x
+getUrlObj x = error ("Object "++show x++" is not a URI")
 
 isBoolObj :: TTLObject -> Bool
 isBoolObj (TTLBoolObj x) = True
