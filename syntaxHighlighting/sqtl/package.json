@@ -1,0 +1,25 @@
+{
+    "name": "sqtl",
+    "displayName": "SQTL",
+    "description": "sqtl Programming Language",
+    "version": "0.0.1",
+    "engines": {
+        "vscode": "^1.66.0"
+    },
+    "categories": [
+        "Programming Languages"
+    ],
+    "contributes": {
+        "languages": [{
+            "id": "sqtl",
+            "aliases": ["SQTL Programming Language", "sqtl"],
+            "extensions": [".sqtl"],
+            "configuration": "./language-configuration.json"
+        }],
+        "grammars": [{
+            "language": "sqtl",
+            "scopeName": "source.sqtl",
+            "path": "./syntaxes/sqtl.tmLanguage.json"
+        }]
+    }
+}
