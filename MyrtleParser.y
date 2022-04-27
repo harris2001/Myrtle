@@ -215,41 +215,64 @@ IntExp : IntExp '+' IntExp                   { PlusII $1 $3 }
 BoolExp : BoolExp and BoolExp                         { And $1 $3 }
         | BoolExp and Object                          { AndIO $1 $3 }
         | Object and BoolExp                          { AndOI $1 $3 }
+        | var and Object                              { AndVO $1 $3 }
+        | Object and var                              { AndOV $1 $3 }
         
         | BoolExp or BoolExp                          { Or $1 $3 }
         | BoolExp or Object                           { OrIO $1 $3 }
         | Object or BoolExp                           { OrOI $1 $3 }
-
+        | var or Object                               { OrVO $1 $3 }
+        | Object or var                               { OrOV $1 $3 }
+        
         | IntExp '>' IntExp                           { GTII $1 $3 }
         | IntExp '>' Object                           { GTIO $1 $3 }
         | Object '>' IntExp                           { GTOI $1 $3 }
+        | var '>' Object                              { GTVO $1 $3 }
+        | Object '>' var                              { GTOV $1 $3 }
+        | var '>' IntExp                              { GTVI $1 $3 }
+        | IntExp '>' var                              { GTIV $1 $3 }
 
         | IntExp '<' IntExp                           { LTII $1 $3 }
         | IntExp '<' Object                           { LTIO $1 $3 }
         | Object '<' IntExp                           { LTOI $1 $3 }
-     --    | var '<' Object                              { LTVO $1 $3 }
+        | var '<' Object                              { LTVO $1 $3 }
+        | Object '<' var                              { LTOV $1 $3 }
+        | var '<' IntExp                              { LTVI $1 $3 }
+        | IntExp '<' var                              { LTIV $1 $3 }
 
         | IntExp deq IntExp                           { EQII $1 $3 }
         | BoolExp deq BoolExp                         { EQBB $1 $3 }
         | StringExp deq StringExp                     { EQSS $1 $3 }
         | Url deq Url                                 { EQUU $1 $3 }
-     --    | Object deq var                              { EQOV $1 $3 }
 
         | Object deq IntExp                           { EQOI $1 $3 }
         | IntExp deq Object                           { EQIO $1 $3 }
         
-        | Object deq StringExp                        { EQOS $1 $3 }
-        | StringExp deq Object                        { EQSO $1 $3 }
-
         | Object deq BoolExp                          { EQOB $1 $3 }
         | BoolExp deq Object                          { EQBO $1 $3 }
 
-        | Subject deq Url                             { EQSU $1 $3 }
-        | Url deq Subject                             { EQUS $1 $3 }
-        | Predicate deq Url                           { EQPU $1 $3 } 
-        | Url deq Predicate                           { EQUP $1 $3 } 
-        | Object deq Url                              { EQOU $1 $3 } 
-        | Url deq Object                              { EQUO $1 $3 } 
+        | Object deq StringExp                        { EQOS $1 $3 }
+        | StringExp deq Object                        { EQSO $1 $3 }
+
+        | Subject deq Url                             { EQSU $3 }
+        | Url deq Subject                             { EQUS $1 }
+        | Predicate deq Url                           { EQPU $3 } 
+        | Url deq Predicate                           { EQUP $1 } 
+        | Object deq Url                              { EQOU $3 } 
+        | Url deq Object                              { EQUO $1 } 
+
+        
+        | Object deq var                              { EQOV $1 $3 }
+        | IntExp deq var                              { EQIV $1 $3 }
+        | BoolExp deq var                             { EQBV $1 $3 }
+        | StringExp deq var                           { EQSV $1 $3 }
+        | Url deq var                                 { EQUV $1 $3 }
+        
+        | var deq Object                              { EQVO $1 $3 }
+        | var deq IntExp                              { EQVI $1 $3 }
+        | var deq BoolExp                             { EQVB $1 $3 }
+        | var deq StringExp                           { EQVS $1 $3 }
+        | var deq Url                                 { EQVU $1 $3 }
 
         | '(' BoolExp ')'                             { $2 }
         
@@ -368,19 +391,23 @@ data BoolExp = And BoolExp BoolExp | AndIO BoolExp Object | AndOI Object BoolExp
              | Or BoolExp BoolExp | OrIO BoolExp Object | OrOI Object BoolExp
              | GTII IntExp IntExp | GTIO IntExp Object | GTOI Object IntExp 
              | LTII IntExp IntExp | LTIO IntExp Object | LTOI Object IntExp
-             | EQII IntExp IntExp | EQBB BoolExp BoolExp | EQSS StringExp StringExp | EQUU Url Url
+             | EQII IntExp IntExp | EQOI Object IntExp | EQIO IntExp Object
+             | EQBB BoolExp BoolExp | EQSS StringExp StringExp | EQUU Url Url
              | EQOS Object StringExp | EQSO StringExp Object
-             | EQOI Object IntExp | EQIO IntExp Object
              | EQOB Object BoolExp | EQBO BoolExp Object
-             | EQSU Subject Url | EQUS Url Subject
-             | EQPU Predicate Url | EQUP Url Predicate
-             | EQOU Object Url | EQUO Url Object
-             | EQOV Object String
-            --  | BoolVariable BoolExp | BoolObj Object
              | QTrue | QFalse
-             | StartsWithStr String String | StartsWithUrl String Url
-             | StartsWithObj String
+             | StartsWithObj String | StartsWithStr String String | StartsWithUrl String Url
+             -- Needed for doing boolean operations with variables
+             | AndVO String Object | AndOV Object String 
+             | OrVO String Object | OrOV Object String 
+             | GTVO String Object | GTOV Object String | GTVI String IntExp | GTIV IntExp String 
+             | LTVO String Object | LTOV Object String | LTVI String IntExp | LTIV IntExp String 
+             | EQOV Object String | EQIV IntExp String | EQBV BoolExp String | EQSV StringExp String | EQUV Url String
+             | EQVO String Object | EQVI String IntExp | EQVB String BoolExp | EQVS String StringExp  | EQVU String Url
+             -- Condition for map function
+             | EQSU Url | EQUS Url | EQPU Url | EQUP Url | EQOU Url | EQUO Url
      deriving Show
+
 
 data SList = StrList SListElem | StrListSingle String
      deriving Show

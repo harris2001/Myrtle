@@ -10,78 +10,93 @@ type Env = (String,Assignment)
 ------------------------------------------------------------------------------------------
 --                                   Evaluating Bool                                    --
 ------------------------------------------------------------------------------------------
+--Evaluation of operation between (BoolExp and BoolExp),
+--                                (IntExp and IntExp),
+--                                (StrExp and StrExp)
+
 evalSimpleBool :: BoolExp -> [Env] -> Bool
 evalSimpleBool QTrue env = True
 evalSimpleBool QFalse env = False
 evalSimpleBool (And x y) env = (evalSimpleBool x env) && (evalSimpleBool y env)
-evalSimpleBool (Or x y) env = (evalSimpleBool x env) || (evalSimpleBool y env)
-evalSimpleBool (EQBB x y) env = (evalSimpleBool x env) == (evalSimpleBool y env)
-evalSimpleBool (GTII x y) env = (evalInt x env) > (evalInt y env)
+evalSimpleBool (Or x y)   env  = (evalSimpleBool x env) || (evalSimpleBool y env)
+evalSimpleBool (GTII x y) env  = (evalInt x env) > (evalInt y env)
+evalSimpleBool (GTVI x y) env  = (lookupIntEnv env x) > (evalInt y env)
+evalSimpleBool (GTIV x y) env  = (evalInt x env) > (lookupIntEnv env y)
 evalSimpleBool (LTII x y) env = (evalInt x env) < (evalInt y env)
+evalSimpleBool (LTVI x y) env = (lookupIntEnv env x) < (evalInt y env)
+evalSimpleBool (LTIV x y) env = (evalInt x env) < (lookupIntEnv env y)
+
 evalSimpleBool (EQII x y) env = (evalInt x env) == (evalInt y env)
+evalSimpleBool (EQBB x y) env = (evalSimpleBool x env) == (evalSimpleBool y env)
+evalSimpleBool (EQSS x y) env = (evalSimpleStr x env) == (evalSimpleStr y env)
+evalSimpleBool (EQUU x y) env = (evalUrl x env) == (evalUrl y env)
+
 evalSimpleBool (StartsWithStr s1 s2) env = isPrefixOf s1 s2
 evalSimpleBool (StartsWithUrl s (NewUrl u)) env = isPrefixOf s u
--- evalSimpleBool (IntVariable str) env = (lookupBoolEnv env str)
+evalSimpleBool (EQVI x y) env = (lookupIntEnv env x) == (evalInt y env)
+evalSimpleBool (EQIV x y) env = (lookupIntEnv env y) == (evalInt x env)
+evalSimpleBool (EQVB x y) env = (lookupBoolEnv env x) == (evalSimpleBool y env)
+evalSimpleBool (EQBV x y) env = (lookupBoolEnv env y) == (evalSimpleBool x env)
+evalSimpleBool (EQVS x y) env = (lookupStrEnv env x) == (evalSimpleStr y env)
+evalSimpleBool (EQSV x y) env = (lookupStrEnv env y) == (evalSimpleStr x env)
+evalSimpleBool (EQVU x y) env = (evalUrl (lookupUrlEnv env x) env) == (evalUrl y env)
+evalSimpleBool (EQUV x y) env = (evalUrl (lookupUrlEnv env y) env) == (evalUrl x env)
 evalSimpleBool _ _ = error "Subject conditions cannot be used inside the where clause"
 
-isBoolEval :: BoolExp -> Bool
-isBoolEval QTrue = True
-isBoolEval QFalse = True
-isBoolEval (And _ _) = True
-isBoolEval (Or _ _) = True
-isBoolEval (EQBB _ _) = True
-isBoolEval (GTII _ _) = True
-isBoolEval (LTII _ _) = True
-isBoolEval (EQII _ _) = True
-isBoolEval (StartsWithStr _ _) = True
-isBoolEval (StartsWithUrl _ _) = True
-isBoolEval (StartsWithObj _) = True
-isBoolEval _ = False
-
+--Evaluation of operation between BoolExp and BoolExp
 evalBoolObj :: BoolExp ->[Env] -> (TTLObject -> Bool)
+evalBoolObj (AndIO x _) env = \o -> (isBoolObj o) && (evalBoolObj x env o) && (getBoolObj o)
+evalBoolObj (AndOI _ x) env = \o -> (isBoolObj o) && (getBoolObj o) && (evalBoolObj x env o)
+evalBoolObj (OrIO x _) env = \o ->  (isBoolObj o) && (evalBoolObj x env o) || (getBoolObj o)
+evalBoolObj (OrOI _ x) env = \o ->  (isBoolObj o) && (getBoolObj o) || (evalBoolObj x env o)
 evalBoolObj (GTIO x _) env = \o ->  (isIntObj o) && (((evalIntExp x env) o) > (getIntObj o))
 evalBoolObj (GTOI _ x) env = \o ->  (isIntObj o) && ((getIntObj o) > ((evalIntExp x env) o))
 evalBoolObj (LTIO x _) env = \o ->  (isIntObj o) && (((evalIntExp x env)o) < (getIntObj o))
 evalBoolObj (LTOI _ x) env = \o ->  (isIntObj o) && ((getIntObj o) < ((evalIntExp x env)o))
 evalBoolObj (EQIO x _) env = \o ->  (isIntObj o) && (((evalIntExp x env)o) == (getIntObj o))
 evalBoolObj (EQOI _ x) env = \o ->  (isIntObj o) && ((getIntObj o) == ((evalIntExp x env)o))
-evalBoolObj (AndIO x _) env = \o -> (isBoolObj o) && (evalBoolObj x env o) && (getBoolObj o)
-evalBoolObj (AndOI _ x) env = \o -> (isBoolObj o) && (getBoolObj o) && (evalBoolObj x env o)
-evalBoolObj (OrIO x _) env = \o ->  (isBoolObj o) && (evalBoolObj x env o) || (getBoolObj o)
-evalBoolObj (OrOI _ x) env = \o ->  (isBoolObj o) && (getBoolObj o) || (evalBoolObj x env o)
 evalBoolObj (EQBO x _) env = \o ->  (isBoolObj o) && (evalBoolObj x env o) == (getBoolObj o)
 evalBoolObj (EQOB _ x) env = \o ->  (isBoolObj o) && (getBoolObj o) == (evalBoolObj x env o)
 evalBoolObj QTrue env = \o -> True
 evalBoolObj QFalse env = \o -> False
-evalBoolObj (And x y) env = \o -> (evalBoolObj x env o) && (evalBoolObj y env o)
-evalBoolObj (Or x y) env = \o -> (evalBoolObj x env o) || (evalBoolObj y env o)
-evalBoolObj (EQBB x y) env = \o -> (evalBoolObj x env o) == (evalBoolObj y env o)
-evalBoolObj (GTII x y) env = \o -> (evalInt x env) > (evalInt y env)
-evalBoolObj (LTII x y) env = \o -> (evalInt x env) < (evalInt y env)
-evalBoolObj (EQII x y) env = \o -> (evalInt x env) == (evalInt y env)
-evalBoolObj (StartsWithObj s) env = \o -> (isStrObj o && isPrefixOf s (getStrObj o)) || (isUrlObj o && isPrefixOf s (getUrlObj o))
+evalBoolObj (StartsWithObj s) env = \o -> (isStrObj o && isPrefixOf s (getStrObj o)) || (isUrlObj o && isPrefixOf s (printingUrl o))
+-- And now for variables
+evalBoolObj (AndVO x _) env = \o -> (isBoolObj o) && ((lookupBoolEnv env x) && (getBoolObj o))
+evalBoolObj (AndOV _ x) env = \o -> (isBoolObj o) && ((lookupBoolEnv env x) && (getBoolObj o))
+evalBoolObj (OrVO x _) env = \o -> (isBoolObj o) && ((lookupBoolEnv env x) || (getBoolObj o))
+evalBoolObj (OrOV _ x) env = \o -> (isBoolObj o) && ((lookupBoolEnv env x) || (getBoolObj o))
+evalBoolObj (GTVO x _) env = \o -> (isBoolObj o) && ((lookupBoolEnv env x) > (getBoolObj o))
+evalBoolObj (GTOV _ x) env = \o -> (isBoolObj o) && ((lookupBoolEnv env x) < (getBoolObj o))
+evalBoolObj (LTVO x _) env = \o -> (isBoolObj o) && ((lookupBoolEnv env x) < (getBoolObj o))
+evalBoolObj (LTOV _ x) env = \o -> (isBoolObj o) && ((lookupBoolEnv env x) > (getBoolObj o))
+evalBoolObj (EQVO x _) env = \o -> (((isBoolObj o) && ((lookupBoolEnv env x) == (getBoolObj o)))
+                                    || ((isIntObj o) && (lookupIntEnv env x) == (getIntObj o))
+                                    || ((isStrObj o) && (lookupStrEnv env x) == (getStrObj o))
+                                    || ((isUrlObj o) && (evalUrl (lookupUrlEnv env x) env) == (evalUrl (getUrlObj o)) env)
+                                   )
+evalBoolObj (EQOV _ x) env = \o -> (((isBoolObj o) && ((lookupBoolEnv env x) == (getBoolObj o)))
+                                    || ((isIntObj o) && (lookupIntEnv env x) == (getIntObj o))
+                                    || ((isStrObj o) && (lookupStrEnv env x) == (getStrObj o))
+                                    || ((isUrlObj o) && (evalUrl (lookupUrlEnv env x) env) == (evalUrl (getUrlObj o)) env)
+                                   )
+evalBoolObj (EQOU u) env = \o -> (evalUrl (getUrlObj o) env) == (evalUrl u env)
+evalBoolObj (EQUO u) env = \o -> (evalUrl (getUrlObj o) env) == (evalUrl u env)
+-- If no object is needed then evaluate single boolexpression evaluation
 evalBoolObj boolExp env = \o -> evalSimpleBool boolExp env
 
-evalUBool :: BoolExp -> [Env] -> (MyrtleParser.Url -> Bool)
-evalUBool (EQUU (NewUrl x) (NewUrl y)) env = \o -> x == y
-evalUBool (EQSU _ (NewUrl x)) env = \(NewUrl s) -> s == x
-evalUBool (EQUS (NewUrl x) _) env = \(NewUrl s) -> x == s
-evalUBool (EQPU _ (NewUrl x)) env = \(NewUrl p) -> p == x
-evalUBool (EQUP (NewUrl x) _) env = \(NewUrl p) -> x == p
-evalUBool (EQOU _ (NewUrl x)) env = \(NewUrl o) -> o == x
-evalUBool (EQUO (NewUrl x) _) env = \(NewUrl o) -> x == o
 
-evalSBool :: BoolExp -> (String -> Bool)
-evalSBool (EQSS (QString x) (QString y)) = \o -> x == y
-evalSBool (EQSO (QString x) _) = \o -> x == o
-evalSBool (EQOS _ (QString x)) = \o -> o == x
-
+evalBoolUrl :: BoolExp -> [Env] -> (MyrtleParser.Url -> Bool)
+evalBoolSubj (EQSU s) env = \u -> evalUrl s env == evalUrl u env 
+evalBoolSubj (EQUS s) env = \u -> evalUrl s env == evalUrl u env 
+evalBoolUrl (EQPU p) env = \u -> evalUrl p env == evalUrl u env 
+evalBoolUrl (EQUP p) env = \u -> evalUrl p env == evalUrl u env 
+evalBoolUrl _ _ = error "Issue when evaluating url"
 ------------------------------------------------------------------------------------------
 --                                   Evaluating Url                                     --
 ------------------------------------------------------------------------------------------
-evalUrl :: MyrtleParser.Url -> String
-evalUrl (NewUrl x) = x
--- evalUrl (Var str) env = (lookupUrlEnv env str)
+evalUrl :: MyrtleParser.Url -> [Env] -> String
+evalUrl (NewUrl x) env = x
+-- evalUrl (Var str) env = evalUrl (lookupUrlEnv env str) env
 ------------------------------------------------------------------------------------------
 --                                  Evaluating String                                   --
 ------------------------------------------------------------------------------------------
@@ -190,17 +205,19 @@ isStrObj _ = False
 -- isIntEval _ = False
 -- isIntEval _ = False
 
--- isBoolEval :: BoolExp -> Bool
--- isBoolEval QTrue = True
--- isBoolEval QFalse = True
--- isBoolEval (And x y) = True
--- isBoolEval (Or x y) = True
--- isBoolEval (EQBB x y) = True 
--- isBoolEval (GTII x y) = True 
--- isBoolEval (LTII x y) = True 
--- isBoolEval (EQII x y) = True 
--- isBoolEval boolExp = True 
--- isBoolEval _ = False
+isBoolEval :: BoolExp -> Bool
+isBoolEval QTrue = True
+isBoolEval QFalse = True
+isBoolEval (And _ _) = True
+isBoolEval (Or _ _) = True
+isBoolEval (EQBB _ _) = True
+isBoolEval (GTII _ _) = True
+isBoolEval (LTII _ _) = True
+isBoolEval (EQII _ _) = True
+isBoolEval (StartsWithStr _ _) = True
+isBoolEval (StartsWithUrl _ _) = True
+isBoolEval (StartsWithObj _) = True
+isBoolEval _ = False
 
 -- isStrEval :: BoolExp -> Bool
 -- isStrEval (EQSS _ _) = True
@@ -258,22 +275,13 @@ getStrObj :: TTLObject -> String
 getStrObj (StrObj x) = x
 getStrObj x = error ("Object "++show x++" is not a string")
 
-getUrlObj :: TTLObject -> String
-getUrlObj (UrlObj (FinalUrl x)) = x
+getUrlObj :: TTLObject -> MyrtleParser.Url
+getUrlObj (UrlObj (FinalUrl x)) = NewUrl x
 getUrlObj x = error ("Object "++show x++" is not a URI")
 
---Literal
-lookupEnv :: [Env] -> String -> Int
-lookupEnv [] v = error ("Variable "++show v++" not in scope")
---IntLit val
-lookupEnv ((str,IntVarAss val):xs) v | str==v =  val
-                                     | otherwise = lookupEnv xs v
--- lookupEnv ((str,BoolVarAss val):xs) v | str==v = IntLit val
---                                      | otherwise = lookupEnv xs v
--- lookupEnv ((str,StrVarAss val):xs) v | str==v = IntLit val
---                                      | otherwise = lookupEnv xs v
+printingUrl :: TTLObject -> String
+printingUrl (UrlObj (FinalUrl x)) = x
+printingUrl x = error ("Object "++show x++" is not a URI")
 
--- evalSBool :: BoolExp -> (TTLObject -> Bool)
--- evalSBool (EQSS (QString x) (QString y)) = \o -> x == y
--- evalSBool (EQSO (QString x) _) = \o -> x == o
--- evalSBool (EQOS _ (QString x)) = \o -> o == x
+getUrlSP :: MyrtleParser.Url  -> String
+getUrlSP (NewUrl u) = u
