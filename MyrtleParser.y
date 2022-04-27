@@ -162,6 +162,7 @@ IntExp : IntExp '+' IntExp                   { PlusII $1 $3 }
        | Object '+' var                      { PlusOV $1 $3 }
        | var '+' IntExp                      { PlusVI $1 $3 }
        | IntExp '+' var                      { PlusIV $1 $3 }
+       | var '+' var                         { PlusVV $1 $3 }
        
        | IntExp '-' IntExp                   { MinusII $1 $3 }
        | Object '-' IntExp                   { MinusOI $1 $3 }
@@ -171,6 +172,7 @@ IntExp : IntExp '+' IntExp                   { PlusII $1 $3 }
        | Object '-' var                      { MinusOV $1 $3 }
        | var '-' IntExp                      { MinusVI $1 $3 }
        | IntExp '-' var                      { MinusIV $1 $3 }
+       | var '-' var                         { MinusVV $1 $3 }
        
        | IntExp '*' IntExp                   { TimesII $1 $3 }
        | Object '*' IntExp                   { TimesOI $1 $3 }
@@ -180,6 +182,7 @@ IntExp : IntExp '+' IntExp                   { PlusII $1 $3 }
        | Object '*' var                      { TimesOV $1 $3 }
        | var '*' IntExp                      { TimesVI $1 $3 }
        | IntExp '*' var                      { TimesIV $1 $3 }
+       | var '*' var                         { TimesVV $1 $3 }
 
        | IntExp '/' IntExp                   { DivII $1 $3 }
        | Object '/' IntExp                   { DivOI $1 $3 }
@@ -189,6 +192,7 @@ IntExp : IntExp '+' IntExp                   { PlusII $1 $3 }
        | Object '/' var                      { DivOV $1 $3 }
        | var '/' IntExp                      { DivVI $1 $3 }
        | IntExp '/' var                      { DivIV $1 $3 }
+       | var '/' var                         { DivVV $1 $3 }
 
        | IntExp '^' IntExp                   { ExpoII $1 $3 }
        | Object '^' IntExp                   { ExpoOI $1 $3 }
@@ -198,6 +202,7 @@ IntExp : IntExp '+' IntExp                   { PlusII $1 $3 }
        | Object '^' var                      { ExpoOV $1 $3 }
        | var '^' IntExp                      { ExpoVI $1 $3 }
        | IntExp '^' var                      { ExpoIV $1 $3 }
+       | var '^' var                         { ExpoVV $1 $3 }
 
        | '(' IntExp ')'                      { $2 } 
        
@@ -217,12 +222,18 @@ BoolExp : BoolExp and BoolExp                         { And $1 $3 }
         | Object and BoolExp                          { AndOI $1 $3 }
         | var and Object                              { AndVO $1 $3 }
         | Object and var                              { AndOV $1 $3 }
+        | var and BoolExp                             { AndVB $1 $3 }
+        | BoolExp and var                             { AndBV $1 $3 }
+        | var and var                                 { AndVV $1 $3 }
         
         | BoolExp or BoolExp                          { Or $1 $3 }
         | BoolExp or Object                           { OrIO $1 $3 }
         | Object or BoolExp                           { OrOI $1 $3 }
         | var or Object                               { OrVO $1 $3 }
         | Object or var                               { OrOV $1 $3 }
+        | var or BoolExp                              { OrVB $1 $3 }
+        | BoolExp or var                              { OrBV $1 $3 }
+        | var or var                                  { OrVV $1 $3 }
         
         | IntExp '>' IntExp                           { GTII $1 $3 }
         | IntExp '>' Object                           { GTIO $1 $3 }
@@ -231,6 +242,7 @@ BoolExp : BoolExp and BoolExp                         { And $1 $3 }
         | Object '>' var                              { GTOV $1 $3 }
         | var '>' IntExp                              { GTVI $1 $3 }
         | IntExp '>' var                              { GTIV $1 $3 }
+        | var '>' var                                 { GTVV $1 $3 }
 
         | IntExp '<' IntExp                           { LTII $1 $3 }
         | IntExp '<' Object                           { LTIO $1 $3 }
@@ -239,6 +251,7 @@ BoolExp : BoolExp and BoolExp                         { And $1 $3 }
         | Object '<' var                              { LTOV $1 $3 }
         | var '<' IntExp                              { LTVI $1 $3 }
         | IntExp '<' var                              { LTIV $1 $3 }
+        | var '<' var                                 { LTVV $1 $3 }
 
         | IntExp deq IntExp                           { EQII $1 $3 }
         | BoolExp deq BoolExp                         { EQBB $1 $3 }
@@ -273,6 +286,7 @@ BoolExp : BoolExp and BoolExp                         { And $1 $3 }
         | var deq BoolExp                             { EQVB $1 $3 }
         | var deq StringExp                           { EQVS $1 $3 }
         | var deq Url                                 { EQVU $1 $3 }
+        | var deq var                                 { EQVV $1 $3 }
 
         | '(' BoolExp ')'                             { $2 }
         
@@ -379,11 +393,11 @@ data IntExp = PlusII IntExp IntExp | PlusOI Object IntExp | PlusIO IntExp Object
               Length String | LengthObj |
               NegateI IntExp |  NegateO Object | NegateV String |
               -- The following rules allow variables ^^ to perform operations on integer expressions
-              PlusVO String Object | PlusOV Object String | PlusVI String IntExp | PlusIV IntExp String |
-              MinusVO String Object | MinusOV Object String | MinusVI String IntExp | MinusIV IntExp String |
-              TimesVO String Object | TimesOV Object String | TimesVI String IntExp | TimesIV IntExp String |
-              DivVO String Object | DivOV Object String | DivVI String IntExp | DivIV IntExp String |
-              ExpoVO String Object | ExpoOV Object String | ExpoVI String IntExp | ExpoIV IntExp String 
+              PlusVO String Object | PlusOV Object String | PlusVI String IntExp | PlusIV IntExp String | PlusVV String String |
+              MinusVO String Object | MinusOV Object String | MinusVI String IntExp | MinusIV IntExp String | MinusVV String String |
+              TimesVO String Object | TimesOV Object String | TimesVI String IntExp | TimesIV IntExp String | TimesVV String String |
+              DivVO String Object | DivOV Object String | DivVI String IntExp | DivIV IntExp String | DivVV String String |
+              ExpoVO String Object | ExpoOV Object String | ExpoVI String IntExp | ExpoIV IntExp String | ExpoVV String String  
      deriving Show
      
 -- TODO change Nodes in doc
@@ -398,10 +412,11 @@ data BoolExp = And BoolExp BoolExp | AndIO BoolExp Object | AndOI Object BoolExp
              | QTrue | QFalse
              | StartsWithObj String | StartsWithStr String String | StartsWithUrl String Url
              -- Needed for doing boolean operations with variables
-             | AndVO String Object | AndOV Object String 
-             | OrVO String Object | OrOV Object String 
-             | GTVO String Object | GTOV Object String | GTVI String IntExp | GTIV IntExp String 
-             | LTVO String Object | LTOV Object String | LTVI String IntExp | LTIV IntExp String 
+             | AndVO String Object | AndOV Object String | AndVB String BoolExp | AndBV BoolExp String | AndVV String String
+             | OrVO String Object | OrOV Object String | OrVB String BoolExp | OrBV BoolExp String | OrVV String String
+             | GTVO String Object | GTOV Object String | GTVI String IntExp | GTIV IntExp String | GTVV String String 
+             | LTVO String Object | LTOV Object String | LTVI String IntExp | LTIV IntExp String | LTVV String String 
+             | EQVV String String 
              | EQOV Object String | EQIV IntExp String | EQBV BoolExp String | EQSV StringExp String | EQUV Url String
              | EQVO String Object | EQVI String IntExp | EQVB String BoolExp | EQVS String StringExp  | EQVU String Url
              -- Condition for map function
