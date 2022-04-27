@@ -1,0 +1,136 @@
+{
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"name": "SQTL Programming Language",
+	"patterns": [
+		{
+			"include": "#comments"
+		},
+		{
+			"include": "#operators"
+		},
+		{
+			"include": "#keywords"
+		},
+		{
+			"include": "#numbers"
+		},
+		{
+			"include": "#strings"
+		},
+		{
+			"captures": {
+				"2":{
+					"name": "entity.name.function.sqtl"
+				}
+			}
+		}
+	],
+	"repository": 
+	{
+		"numbers":{
+			"patterns": [
+				{
+					"name":"keyword.other.unit.suffix.integer.sqtl",
+					"match": "(^-?[0-9][0-9\\.]+$"
+
+				}
+			]
+		},
+		"keywords": {
+			"patterns": [{
+				"name": "keyword.control.sqtl",
+				"match": "\\b(and|where|or)\\b"
+			}]
+		},
+		"comments": {
+			"patterns" : [
+				{
+					"begin": "#\\!",
+					"beginCaptures":{
+						"0": {
+							"name": "punctuation.definition.comment.sqtl"
+						}
+					},
+					"end": "\\n",
+					"name":"comment.line.number-sign.sqtl"
+				},
+				{
+					"captures": {
+						"0": {
+							"name": "punctuation.definition.comment.sqtl"
+						}
+					},
+					"match": "/\\*\\*/",
+					"name":"comment.block.empty.sqtl"
+				},
+				{
+					"include": "#comments-inline"
+				}
+			]
+			
+		},
+		"comments-inline":{
+			"patterns": [
+				{
+					"begin": "/\\*",
+					"captures": {
+						"0":{
+							"name": "punctuation.definition.comment.sqtl"
+						}
+				
+					},
+					"end": "\\*/",
+					"name":"comment.block.sqtl"
+				},
+				{
+					"begin": "(^[ \\t+)?(?=//)",
+					"beginCaptures": {
+						"1":{
+							"name":"punctuation.whitespace.comment.leading.sqtl"
+						}
+					},
+					"end": "(?!\\G)",
+					"patterns":[
+						{
+							"begin": "//",
+							"beginCaptures":{
+								"0":{
+									"name":"punctuation.definition.comment.sqtl"
+								}
+							},
+							"end":"\\n",
+							"name":"comment.line.double-slash.sqtl"
+						}
+					]
+				}
+			]
+
+		},
+		"strings":{
+			"name":"string.quoted.double.sqtl",
+			"begin": "\"",
+			"end": "\"",
+			"patterns": [
+				{
+					"name":"constant.character.escape.sqtl",
+					"match": "\\\\."
+				}
+			]
+		},
+		"operators":{
+			"patterns": [
+				{
+					"match": "(true|false)\\b",
+					"name":"keyword.operator.sizeof.sqtl"
+				},
+				{
+					"match": "--",
+					"name":"keyword.operator.decre"
+				}
+			]
+		}
+
+		
+	},
+	"scopeName": "source.sqtl"
+}
