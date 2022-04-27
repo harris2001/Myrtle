@@ -58,6 +58,7 @@ printAssignments :: [Env] -> TTLObject -> IO ()
 printAssignments [] _ = putStr ""
 printAssignments ((str,IntVarAss intexp):env) obj = do putStr (str++": ")
                                                        print intexp
+                                                       print $ length env
                                                        printAssignments env obj
                                                        
 printAssignments ((str,BoolVarAss boolexp):env) obj = do putStr (str++": ")

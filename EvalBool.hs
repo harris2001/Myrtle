@@ -18,13 +18,17 @@ evalSimpleBool :: BoolExp -> [Env] -> Bool
 evalSimpleBool QTrue env = True
 evalSimpleBool QFalse env = False
 evalSimpleBool (And x y) env = (evalSimpleBool x env) && (evalSimpleBool y env)
-evalSimpleBool (Or x y)   env  = (evalSimpleBool x env) || (evalSimpleBool y env)
+evalSimpleBool (Or x y) env = (evalSimpleBool x env) || (evalSimpleBool y env)
+evalSimpleBool (AndVB x@(BoolVarAss v) b) env = (lookupBoolEnv env x) && (evalSimpleBool b env)
+evalSimpleBool (AndBV b x@(BoolVarAss v)) env = (lookupBoolEnv env x) && (evalSimpleBool b env)
+evalSimpleBool (OrVB x@(BoolVarAss v) b)  env = (lookupBoolEnv env x) || (evalSimpleBool b env)
+evalSimpleBool (OrBV b x@(BoolVarAss v))  env = (lookupBoolEnv env x) || (evalSimpleBool b env)
 evalSimpleBool (GTII x y) env  = (evalInt x env) > (evalInt y env)
-evalSimpleBool (GTVI x y) env  = (lookupIntEnv env x) > (evalInt y env)
-evalSimpleBool (GTIV x y) env  = (evalInt x env) > (lookupIntEnv env y)
+evalSimpleBool (GTVI x@(IntVarAss v) y) env  = (lookupIntEnv env x) > (evalInt y env)
+evalSimpleBool (GTIV x y@(IntVarAss v)) env  = (evalInt x env) > (lookupIntEnv env y)
 evalSimpleBool (LTII x y) env = (evalInt x env) < (evalInt y env)
-evalSimpleBool (LTVI x y) env = (lookupIntEnv env x) < (evalInt y env)
-evalSimpleBool (LTIV x y) env = (evalInt x env) < (lookupIntEnv env y)
+evalSimpleBool (LTVI x@(IntVarAss v) y) env = (lookupIntEnv env x) < (evalInt y env)
+evalSimpleBool (LTIV x y@(IntVarAss v)) env = (evalInt x env) < (lookupIntEnv env y)
 
 evalSimpleBool (EQII x y) env = (evalInt x env) == (evalInt y env)
 evalSimpleBool (EQBB x y) env = (evalSimpleBool x env) == (evalSimpleBool y env)
@@ -33,20 +37,22 @@ evalSimpleBool (EQUU x y) env = (evalUrl x env) == (evalUrl y env)
 
 evalSimpleBool (StartsWithStr s1 s2) env = isPrefixOf s1 s2
 evalSimpleBool (StartsWithUrl s (NewUrl u)) env = isPrefixOf s u
-evalSimpleBool (EQVI x y) env = (lookupIntEnv env x) == (evalInt y env)
-evalSimpleBool (EQIV x y) env = (lookupIntEnv env y) == (evalInt x env)
-evalSimpleBool (EQVB x y) env = (lookupBoolEnv env x) == (evalSimpleBool y env)
-evalSimpleBool (EQBV x y) env = (lookupBoolEnv env y) == (evalSimpleBool x env)
-evalSimpleBool (EQVS x y) env = (lookupStrEnv env x) == (evalSimpleStr y env)
-evalSimpleBool (EQSV x y) env = (lookupStrEnv env y) == (evalSimpleStr x env)
-evalSimpleBool (EQVU x y) env = (evalUrl (lookupUrlEnv env x) env) == (evalUrl y env)
-evalSimpleBool (EQUV x y) env = (evalUrl (lookupUrlEnv env y) env) == (evalUrl x env)
-evalSimpleBool _ _ = error "Subject conditions cannot be used inside the where clause"
+evalSimpleBool (EQVI x@(IntVarAss v) y) env = (lookupIntEnv env x) == (evalInt y env)
+evalSimpleBool (EQIV x y@(IntVarAss v)) env = (lookupIntEnv env y) == (evalInt x env)
+evalSimpleBool (EQVB x@(BoolVarAss v) y) env = (lookupBoolEnv env x) == (evalSimpleBool y env)
+evalSimpleBool (EQBV x y@(BoolVarAss v)) env = (lookupBoolEnv env y) == (evalSimpleBool x env)
+evalSimpleBool (EQVS x@(StringVarAss v) y) env = (lookupStrEnv env x) == (evalSimpleStr y env)
+evalSimpleBool (EQSV x y@(StringVarAss v)) env = (lookupStrEnv env y) == (evalSimpleStr x env)
+evalSimpleBool (EQVU x@(UrlVarAss v) y) env = (evalUrl (lookupUrlEnv env x) env) == (evalUrl y env)
+evalSimpleBool (EQUV x y@(UrlVarAss v)) env = (evalUrl (lookupUrlEnv env y) env) == (evalUrl x env)
+evalSimpleBool x _ = error  "Subject conditions cannot be used inside the where clause"
 
 --Evaluation of operation between BoolExp and BoolExp
 evalBoolObj :: BoolExp ->[Env] -> (TTLObject -> Bool)
+evalBoolObj (And x y) env = \o -> (evalBoolObj x env o) && (evalBoolObj y env o)
 evalBoolObj (AndIO x _) env = \o -> (isBoolObj o) && (evalBoolObj x env o) && (getBoolObj o)
 evalBoolObj (AndOI _ x) env = \o -> (isBoolObj o) && (getBoolObj o) && (evalBoolObj x env o)
+evalBoolObj (Or x y) env = \o -> (evalBoolObj x env o) || (evalBoolObj y env o)
 evalBoolObj (OrIO x _) env = \o ->  (isBoolObj o) && (evalBoolObj x env o) || (getBoolObj o)
 evalBoolObj (OrOI _ x) env = \o ->  (isBoolObj o) && (getBoolObj o) || (evalBoolObj x env o)
 evalBoolObj (GTIO x _) env = \o ->  (isIntObj o) && (((evalIntExp x env) o) > (getIntObj o))
@@ -61,14 +67,22 @@ evalBoolObj QTrue env = \o -> True
 evalBoolObj QFalse env = \o -> False
 evalBoolObj (StartsWithObj s) env = \o -> (isStrObj o && isPrefixOf s (getStrObj o)) || (isUrlObj o && isPrefixOf s (printingUrl o))
 -- And now for variables
-evalBoolObj (AndVO x _) env = \o -> (isBoolObj o) && ((lookupBoolEnv env x) && (getBoolObj o))
-evalBoolObj (AndOV _ x) env = \o -> (isBoolObj o) && ((lookupBoolEnv env x) && (getBoolObj o))
-evalBoolObj (OrVO x _) env = \o -> (isBoolObj o) && ((lookupBoolEnv env x) || (getBoolObj o))
-evalBoolObj (OrOV _ x) env = \o -> (isBoolObj o) && ((lookupBoolEnv env x) || (getBoolObj o))
-evalBoolObj (GTVO x _) env = \o -> (isBoolObj o) && ((lookupBoolEnv env x) > (getBoolObj o))
-evalBoolObj (GTOV _ x) env = \o -> (isBoolObj o) && ((lookupBoolEnv env x) < (getBoolObj o))
-evalBoolObj (LTVO x _) env = \o -> (isBoolObj o) && ((lookupBoolEnv env x) < (getBoolObj o))
-evalBoolObj (LTOV _ x) env = \o -> (isBoolObj o) && ((lookupBoolEnv env x) > (getBoolObj o))
+evalBoolObj (AndVO x@(BoolVarAss v) _) env = \o -> (isBoolObj o) && ((lookupBoolEnv env x) && (getBoolObj o))
+evalBoolObj (AndOV _ x@(BoolVarAss v)) env = \o -> (isBoolObj o) && ((lookupBoolEnv env x) && (getBoolObj o))
+evalBoolObj (AndVB x@(BoolVarAss v) b) env = \o -> ((lookupBoolEnv env x) && (evalBoolObj b env o))
+evalBoolObj (AndBV b x@(BoolVarAss v)) env = \o -> ((lookupBoolEnv env x) && (evalBoolObj b env o))
+evalBoolObj (AndVV a@(BoolVarAss w) b@(BoolVarAss v)) env = \o -> ((lookupBoolEnv env a) && (lookupBoolEnv env b))
+evalBoolObj (OrVO x@(BoolVarAss v) _) env = \o -> (isBoolObj o) && ((lookupBoolEnv env x) || (getBoolObj o))
+evalBoolObj (OrOV _ x@(BoolVarAss v)) env = \o -> (isBoolObj o) && ((lookupBoolEnv env x) || (getBoolObj o))
+evalBoolObj (OrVB x@(BoolVarAss v) b) env = \o -> ((lookupBoolEnv env x) || (evalBoolObj b env o))
+evalBoolObj (OrBV b x@(BoolVarAss v)) env = \o -> ((lookupBoolEnv env x) || (evalBoolObj b env o))
+evalBoolObj (OrVV a@(BoolVarAss w) b@(BoolVarAss v)) env = \o -> ((lookupBoolEnv env a) || (lookupBoolEnv env b))
+evalBoolObj (GTVO x@(BoolVarAss v) _) env = \o -> (isBoolObj o) && ((lookupBoolEnv env x) > (getBoolObj o))
+evalBoolObj (GTOV _ x@(IntVarAss v)) env = \o -> (isBoolObj o) && ((lookupIntEnv env x) < (getBoolObj o))
+evalBoolObj (GTVV a@(IntVarAss w) b@(IntVarAss v)) env = \o -> ((lookupIntEnv env a) > (lookupIntEnv env b))
+evalBoolObj (LTVO x@(IntVarAss v) _) env = \o -> (isBoolObj o) && ((lookupIntEnv env x) < (getBoolObj o))
+evalBoolObj (LTOV _ x@(IntVarAss v)) env = \o -> (isBoolObj o) && ((lookupIntEnv env x) > (getBoolObj o))
+evalBoolObj (LTVV a@(IntVarAss w) b@(IntVarAss v)) env = \o -> ((lookupIntEnv env a) < (lookupIntEnv env b))
 evalBoolObj (EQVO x _) env = \o -> (((isBoolObj o) && ((lookupBoolEnv env x) == (getBoolObj o)))
                                     || ((isIntObj o) && (lookupIntEnv env x) == (getIntObj o))
                                     || ((isStrObj o) && (lookupStrEnv env x) == (getStrObj o))
@@ -78,6 +92,11 @@ evalBoolObj (EQOV _ x) env = \o -> (((isBoolObj o) && ((lookupBoolEnv env x) == 
                                     || ((isIntObj o) && (lookupIntEnv env x) == (getIntObj o))
                                     || ((isStrObj o) && (lookupStrEnv env x) == (getStrObj o))
                                     || ((isUrlObj o) && (evalUrl (lookupUrlEnv env x) env) == (evalUrl (getUrlObj o)) env)
+                                   )
+evalBoolObj (EQVV x y) env = \o -> (  (lookupBoolEnv env x) == (lookupBoolEnv env y)
+                                   || (lookupIntEnv env x) == (lookupIntEnv env y)
+                                   || (lookupStrEnv env x) == (lookupStrEnv env y)
+                                   || (evalUrl (lookupUrlEnv env x) env) == (evalUrl (lookupUrlEnv env y) env)
                                    )
 evalBoolObj (EQOU u) env = \o -> (evalUrl (getUrlObj o) env) == (evalUrl u env)
 evalBoolObj (EQUO u) env = \o -> (evalUrl (getUrlObj o) env) == (evalUrl u env)
@@ -110,10 +129,25 @@ evalSimpleStr (QString x) env = x
 ------------------------------------------------------------------------------------------
 evalInt :: IntExp -> [Env] -> Int
 evalInt (PlusII x1 x2) env = ((evalInt x1 env) + (evalInt x2 env))
+evalInt (PlusVI x1 x2) env = (lookupIntEnv env x1) + (evalInt x2 env)
+evalInt (PlusIV x1 x2) env = (evalInt x1 env) + (lookupIntEnv env x2)
+evalInt (PlusVV x1 x2) env = (lookupIntEnv env x1) + (lookupIntEnv env x2)
 evalInt (MinusII x1 x2) env = ((evalInt x1 env) - (evalInt x2 env))
+evalInt (MinusVI x1 x2) env = ((lookupIntEnv env x1)- (evalInt x2 env))
+evalInt (MinusIV x1 x2) env = (evalInt x1 env) - (lookupIntEnv env x2)
+evalInt (MinusVV x1 x2) env = (lookupIntEnv env x1) - (lookupIntEnv env x2)
 evalInt (TimesII x1 x2) env = ((evalInt x1 env) * (evalInt x2 env))
+evalInt (TimesVI x1 x2) env = ((lookupIntEnv env x1) * (evalInt x2 env))
+evalInt (TimesIV x1 x2) env = ((evalInt x1 env) * (lookupIntEnv env x2))
+evalInt (TimesVV x1 x2) env = ((lookupIntEnv env x1) * (lookupIntEnv env x2))
 evalInt (DivII x1 x2) env = ((evalInt x1 env) `div` (evalInt x2 env))
+evalInt (DivVI x1 x2) env = ((lookupIntEnv env x1) `div` (evalInt x2 env))
+evalInt (DivIV x1 x2) env = ((evalInt x1 env) `div` (lookupIntEnv env x2))
+evalInt (DivVV x1 x2) env = ((lookupIntEnv env x1) `div` (lookupIntEnv env x2))
 evalInt (ExpoII x1 x2) env = ((evalInt x1 env) ^ (evalInt x2 env))
+evalInt (ExpoVI x1 x2) env = ((lookupIntEnv env x1) ^ (evalInt x2 env))
+evalInt (ExpoIV x1 x2) env = ((evalInt x1 env) ^ (lookupIntEnv env x2))
+evalInt (ExpoVV x1 x2) env = ((lookupIntEnv env x1) ^ (lookupIntEnv env x2))
 evalInt (QInt int) env = int 
 evalInt (NegateI x) env = (-1*(evalInt x env))
 -- evalInt (IntVariable str) env = (lookupIntEnv env str)
@@ -252,7 +286,7 @@ lookupBoolEnv ((str,BoolVarAss val):xs) v | str==v =  val
 lookupStrEnv :: [Env] -> String -> String
 lookupStrEnv [] v = error ("Variable "++show v++" not in scope")
 lookupStrEnv ((str,StringVarAss val):xs) v | str==v =  val
-                                            | otherwise = lookupStrEnv xs v
+                                           | otherwise = lookupStrEnv xs v
 
 lookupUrlEnv :: [Env] -> String -> MyrtleParser.Url
 lookupUrlEnv [] v = error ("Variable "++show v++" not in scope")
