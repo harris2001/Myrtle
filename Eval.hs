@@ -29,12 +29,10 @@ evalSimpleBool (GTIV x y) env = (evalInt x env) > (unwrap(lookupIntEnv env y))
 evalSimpleBool (LTII x y) env = (evalInt x env) < (evalInt y env)
 evalSimpleBool (LTVI x y) env = (unwrap(lookupIntEnv env x)) < (evalInt y env)
 evalSimpleBool (LTIV x y) env = (evalInt x env) < (unwrap(lookupIntEnv env y))
-
 evalSimpleBool (EQII x y) env = (evalInt x env) == (evalInt y env)
 evalSimpleBool (EQBB x y) env = (evalSimpleBool x env) == (evalSimpleBool y env)
 evalSimpleBool (EQSS x y) env = (evalSimpleStr x env) == (evalSimpleStr y env)
 evalSimpleBool (EQUU x y) env = (evalUrl x env) == (evalUrl y env)
-
 evalSimpleBool (StartsWithStr s1 s2) env = isPrefixOf s1 s2
 evalSimpleBool (StartsWithUrl s (NewUrl u)) env = isPrefixOf s u
 evalSimpleBool (EQVI x y) env = (unwrap(lookupIntEnv env x)) == (evalInt y env)
@@ -116,14 +114,12 @@ evalBoolUrl _ _ = error "Issue when evaluating url"
 ------------------------------------------------------------------------------------------
 evalUrl :: MyrtleParser.Url -> [Env] -> String
 evalUrl (NewUrl x) env = x
--- evalUrl (Var str) env = evalUrl (unwrap(lookupUrlEnv env str)) env
+
 ------------------------------------------------------------------------------------------
 --                                  Evaluating String                                   --
 ------------------------------------------------------------------------------------------
-
 evalSimpleStr :: StringExp -> [Env] -> String
 evalSimpleStr (QString x) env = x
--- evalSimpleStr (Var str) env = (unwrap(lookupStrEnv env str))
 
 ------------------------------------------------------------------------------------------
 --                                   Evaluating Int                                     --
@@ -156,15 +152,28 @@ evalInt (Length str) _ = length(str)
 evalInt _ _ = error "Syntax error inside where clause"
 
 isIntEval :: IntExp -> Bool
-isIntEval (PlusII _ _ )  = True
-isIntEval (MinusII _ _ ) = True
-isIntEval (TimesII _ _ ) = True
-isIntEval (DivII _ _ ) = True
-isIntEval (ExpoII _ _ ) = True
-isIntEval (QInt _ ) = True
-isIntEval (NegateI _ ) = True
--- isIntEval (IntVariable _ ) = True
-isIntEval (Length _) = True
+isIntEval (PlusII _ _) = True
+isIntEval (PlusVI _ _) = True
+isIntEval (PlusIV _ _) = True
+isIntEval (PlusVV _ _) = True
+isIntEval (MinusII _ _) = True
+isIntEval (MinusVI _ _) = True
+isIntEval (MinusIV _ _) = True
+isIntEval (MinusVV _ _) = True
+isIntEval (TimesII _ _) = True
+isIntEval (TimesVI _ _) = True
+isIntEval (TimesIV _ _) = True
+isIntEval (TimesVV _ _) = True
+isIntEval (DivII _ _) = True
+isIntEval (DivVI _ _) = True
+isIntEval (DivIV _ _) = True
+isIntEval (DivVV _ _) = True
+isIntEval (ExpoII _ _) = True
+isIntEval (ExpoVI _ _) = True
+isIntEval (ExpoIV _ _) = True
+isIntEval (ExpoVV _ _) = True
+isIntEval (QInt _) = True
+isIntEval (NegateI _) = True
 isIntEval LengthObj = True
 isIntEval _ = False
 
@@ -185,6 +194,7 @@ evalIntExp (ExpoOI _ x) env = \o -> ((getIntObj o) ^ ((evalIntExp x env)o))
 evalIntExp (ExpoIO x _) env = \o -> (((evalIntExp x env)o) ^ (getIntObj o))
 evalIntExp (ExpoOO _ _) env = \o -> ((getIntObj o) ^ (getIntObj o))
 evalIntExp (NegateO _) env = \o -> (-1*(getIntObj o))
+evalIntExp (LengthObj) _ = \(StrObj x) -> (length x)
 evalIntExp x env = \o -> evalInt x env
 
 --------------------------------------------------------------------------------------
@@ -244,14 +254,47 @@ isBoolEval :: BoolExp -> Bool
 isBoolEval QTrue = True
 isBoolEval QFalse = True
 isBoolEval (And _ _) = True
+isBoolEval (AndVB _ _) = True
+isBoolEval (AndBV _ _) = True
 isBoolEval (Or _ _) = True
-isBoolEval (EQBB _ _) = True
+isBoolEval (OrVB _ _) = True
+isBoolEval (OrBV _ _) = True
 isBoolEval (GTII _ _) = True
+isBoolEval (GTVI _ _) = True
+isBoolEval (GTIV _ _) = True
 isBoolEval (LTII _ _) = True
+isBoolEval (LTVI _ _) = True
+isBoolEval (LTIV _ _) = True
 isBoolEval (EQII _ _) = True
+isBoolEval (EQBB _ _) = True
+isBoolEval (EQSS _ _) = True
+isBoolEval (EQUU _ _) = True
 isBoolEval (StartsWithStr _ _) = True
 isBoolEval (StartsWithUrl _ _) = True
-isBoolEval (StartsWithObj _) = True
+isBoolEval (EQVI _ _) = True
+isBoolEval (EQIV _ _) = True
+isBoolEval (EQVB _ _) = True
+isBoolEval (EQBV _ _) = True
+isBoolEval (EQVS _ _) = True
+isBoolEval (EQSV _ _) = True
+isBoolEval (EQVU _ _) = True
+isBoolEval (EQUV _ _) = True
+isBoolEval (AndIO _ _) = True
+isBoolEval (AndOI _ _) = True
+isBoolEval (OrIO _ _) = True
+isBoolEval (OrOI _ _) = True
+isBoolEval (GTIO _ _) = True
+isBoolEval (GTOI _ _) = True
+isBoolEval (LTIO _ _) = True
+isBoolEval (LTOI _ _) = True
+isBoolEval (EQIO _ _) = True
+isBoolEval (EQOI _ _) = True
+isBoolEval (EQBO _ _) = True
+isBoolEval (EQOB _ _) = True
+isBoolEval (EQOV _ _) = True
+isBoolEval (EQVV _ _) = True
+isBoolEval (EQOU _) = True
+isBoolEval (EQUO _) = True
 isBoolEval _ = False
 
 -- isStrEval :: BoolExp -> Bool

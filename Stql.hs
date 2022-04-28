@@ -92,6 +92,7 @@ evalFunc (Filter(TTLCombs(SingleFilter filterSubj filterPred list))) tri env = r
 evalFunc (Filter(TTLCombs(FilterSeq filterSubj filterPred list combs))) tri env = do t1 <- evalFunc (Filter(TTLCombs (SingleFilter filterSubj filterPred list))) tri env
                                                                                      t2 <- evalFunc (Filter(TTLCombs combs)) tri env
                                                                                      return (t1++t2)
+evalFunc (Map cond) tri env = return (mapBackend tri cond env)
 
 -- Takes a list of turtle files and prints them
 print_rdf :: [String] -> IO String
@@ -149,6 +150,44 @@ filterObjectList obj (LiteralLst(SingleLit lit)) env = filterObject obj lit env
 filterObject :: TTLObject -> Literal -> [Env] -> Bool
 filterObject obj(BoolLit boolexp) env = (evalBoolObj boolexp env) obj 
 filterObject _ _ _ = False
+
+-- Map_Backend:
+mapBackend :: [TTLTriplet] -> Cond -> [Env] -> [TTLTriplet]
+mapBackend graph cond env = concat $ map (evalCond cond env []) graph
+
+evalCond :: Cond -> [Env] -> [TTLTriplet] -> TTLTriplet -> [TTLTriplet]
+evalCond (Always (AssignSubj _ (NewUrl url))) _ acc (Triplet _ po) = ((Triplet (Sbj (FinalUrl url)) po):acc)
+evalCond (Always (AssignPred _ (NewUrl url))) _ acc (Triplet s (PredObj _ o)) = ((Triplet s (PredObj (TTLPred (FinalUrl url)) o)):acc)
+evalCond (Always (AssignObjUrl _ (NewUrl url))) _ acc (Triplet s (PredObj p _)) = ((Triplet s (PredObj p (UrlObj (FinalUrl url)))):acc)
+evalCond (Always (AssignObjStr _ (QString str))) _ acc (Triplet s (PredObj p _)) = ((Triplet s (PredObj p (StrObj str))):acc)
+evalCond (Always (AssignObjInt _ intexp)) env acc t@(Triplet s (PredObj p o)) | isIntObj o && isIntEval intexp = ((Triplet s (PredObj p (IntObj (evalIntExp intexp env o)))):acc)
+evalCond (Always (AssignObjBool _ boolexp)) env acc t@(Triplet s (PredObj p o)) | isBoolEval boolexp = ((Triplet s (PredObj p (TTLBoolObj (evalBoolObj boolexp env o)))):acc) 
+evalCond (Always (AddSPO (NewUrl x) (NewUrl y) o)) env acc _ = ((Triplet (Sbj (FinalUrl x)) (PredObj (TTLPred (FinalUrl y)) (litToObj o env))):acc)
+evalCond (Always (AddPO (NewUrl x) o)) env acc trip = ((Triplet (projSubjO trip) (PredObj (TTLPred (FinalUrl x)) (litToObj o env))):acc)
+evalCond (Always (AddSO (NewUrl x) o)) env acc trip = ((Triplet (Sbj (FinalUrl x)) (PredObj (projPredO trip) (litToObj o env))):acc)
+evalCond (Always (AddSP (NewUrl x) (NewUrl y))) env acc trip = ((Triplet (Sbj (FinalUrl x)) (PredObj (TTLPred (FinalUrl y)) (projObjO trip))):acc)
+evalCond (Always (AddS (NewUrl x))) env acc trip = ((Triplet (Sbj (FinalUrl x)) (PredObj (projPredO trip) (projObjO trip))):acc)
+evalCond (Always (AddP (NewUrl x))) env acc trip = ((Triplet (projSubjO trip) (PredObj (TTLPred (FinalUrl x)) (projObjO trip))):acc)
+evalCond (Always Add) env acc trip = ((Triplet (projSubjO trip) (PredObj (projPredO trip) (projObjO trip))):acc)
+evalCond (ActionSeq action cond) env acc triplet = evalCond cond env (evalCond (Always action) env acc triplet) triplet
+evalCond (If boolexp condTrue condFalse) env acc t@(Triplet _ (PredObj _ o)) | evalBoolObj boolexp env o = evalCond condTrue env acc t
+                                                                             | otherwise = evalCond condFalse env acc t
+evalCond _ _ _ triplet = [triplet]
+
+projSubjO :: TTLTriplet -> TTLSubject
+projSubjO (Triplet s predObj) = s
+
+projPredO :: TTLTriplet -> TTLPredicate
+projPredO (Triplet subj (PredObj p _)) = p
+
+projObjO :: TTLTriplet -> TTLObject
+projObjO (Triplet subj (PredObj _ o)) = o
+
+litToObj :: Literal -> [Env] -> TTLObject
+litToObj (IntLit o) env = IntObj (evalInt o env)
+litToObj (BoolLit o) env = TTLBoolObj (evalSimpleBool o env)
+litToObj (StrLit o) env = StrObj (evalSimpleStr o env)
+litToObj (UrlLit o) env = UrlObj (FinalUrl (evalUrl o env))
 
 --Returns true if all subjects/objects are allowed ('_')
 anything :: FilterEl -> Bool
