@@ -1,0 +1,2 @@
+"test.ttl" | filter[([<http://test.com/a>,<http://test.com/b>],[<http://test.com/b>],_),
+                    ([<http://test.com/c>],[<http://test.com/a>,<http://test.com/c>],_)]

@@ -23,13 +23,12 @@ evalSimpleBool (AndBV b x) env = (unwrap(lookupBoolEnv env x)) && (evalSimpleBoo
 evalSimpleBool (Or x y)   env  = (evalSimpleBool x env) || (evalSimpleBool y env)
 evalSimpleBool (OrVB x b) env = (unwrap(lookupBoolEnv env x)) || (evalSimpleBool b env)
 evalSimpleBool (OrBV b x) env = (unwrap(lookupBoolEnv env x)) || (evalSimpleBool b env)
-evalSimpleBool (OrVV a b) env = (lookupBoolEnv env b) /= Nothing && ((unwrap(lookupBoolEnv env a)) || (unwrap(lookupBoolEnv env b)))
 evalSimpleBool (GTII x y) env = (evalInt x env) > (evalInt y env)
-evalSimpleBool (GTVI x y) env = (lookupIntEnv env x) /= Nothing && (unwrap(lookupIntEnv env x)) > (evalInt y env)
-evalSimpleBool (GTIV x y) env = (lookupIntEnv env y) /= Nothing && (evalInt x env) > (unwrap(lookupIntEnv env y))
+evalSimpleBool (GTVI x y) env = (unwrap(lookupIntEnv env x)) > (evalInt y env)
+evalSimpleBool (GTIV x y) env = (evalInt x env) > (unwrap(lookupIntEnv env y))
 evalSimpleBool (LTII x y) env = (evalInt x env) < (evalInt y env)
-evalSimpleBool (LTVI x y) env = (lookupIntEnv env x) /= Nothing && (unwrap(lookupIntEnv env x)) < (evalInt y env)
-evalSimpleBool (LTIV x y) env = (lookupIntEnv env y) /= Nothing && (evalInt x env) < (unwrap(lookupIntEnv env y))
+evalSimpleBool (LTVI x y) env = (unwrap(lookupIntEnv env x)) < (evalInt y env)
+evalSimpleBool (LTIV x y) env = (evalInt x env) < (unwrap(lookupIntEnv env y))
 
 evalSimpleBool (EQII x y) env = (evalInt x env) == (evalInt y env)
 evalSimpleBool (EQBB x y) env = (evalSimpleBool x env) == (evalSimpleBool y env)
@@ -38,14 +37,14 @@ evalSimpleBool (EQUU x y) env = (evalUrl x env) == (evalUrl y env)
 
 evalSimpleBool (StartsWithStr s1 s2) env = isPrefixOf s1 s2
 evalSimpleBool (StartsWithUrl s (NewUrl u)) env = isPrefixOf s u
-evalSimpleBool (EQVI x y) env = (lookupIntEnv env x) /= Nothing && (unwrap(lookupIntEnv env x)) == (evalInt y env)
-evalSimpleBool (EQIV x y) env = (lookupIntEnv env y) /= Nothing && (unwrap(lookupIntEnv env y)) == (evalInt x env)
-evalSimpleBool (EQVB x y) env = (lookupIntEnv env x) /= Nothing && (unwrap(lookupBoolEnv env x)) == (evalSimpleBool y env)
-evalSimpleBool (EQBV x y) env = (lookupIntEnv env y) /= Nothing && (unwrap(lookupBoolEnv env y)) == (evalSimpleBool x env)
-evalSimpleBool (EQVS x y) env = (lookupIntEnv env x) /= Nothing && (unwrap(lookupStrEnv env x)) == (evalSimpleStr y env)
-evalSimpleBool (EQSV x y) env = (lookupIntEnv env y) /= Nothing && (unwrap(lookupStrEnv env y)) == (evalSimpleStr x env)
-evalSimpleBool (EQVU x y) env = (lookupIntEnv env x) /= Nothing && (evalUrl (unwrap(lookupUrlEnv env x)) env) == (evalUrl y env)
-evalSimpleBool (EQUV x y) env = (lookupIntEnv env y) /= Nothing && (evalUrl (unwrap(lookupUrlEnv env y)) env) == (evalUrl x env)
+evalSimpleBool (EQVI x y) env = (unwrap(lookupIntEnv env x)) == (evalInt y env)
+evalSimpleBool (EQIV x y) env = (unwrap(lookupIntEnv env y)) == (evalInt x env)
+evalSimpleBool (EQVB x y) env = (unwrap(lookupBoolEnv env x)) == (evalSimpleBool y env)
+evalSimpleBool (EQBV x y) env = (unwrap(lookupBoolEnv env y)) == (evalSimpleBool x env)
+evalSimpleBool (EQVS x y) env = (unwrap(lookupStrEnv env x)) == (evalSimpleStr y env)
+evalSimpleBool (EQSV x y) env = (unwrap(lookupStrEnv env y)) == (evalSimpleStr x env)
+evalSimpleBool (EQVU x y) env = (evalUrl (unwrap(lookupUrlEnv env x)) env) == (evalUrl y env)
+evalSimpleBool (EQUV x y) env = (evalUrl (unwrap(lookupUrlEnv env y)) env) == (evalUrl x env)
 
 evalSimpleBool x _ = error  "Syntax error while trying to evaluate simple boolean expression"
 

@@ -88,15 +88,21 @@ CreateVars : CreateVar                                      { UVarEnv $1 }
 CreateVar : var '=' IntExp                                  { IntVar $1 $3 }
           | var '=' StringExp                               { StringVar $1 $3 }
           | var '=' BoolExp                                 { BoolVar $1 $3 }
-          | var '=' Url                                     { UrlVar $1 $3}
+          | var '=' Url                                     { UrlVar $1 $3 }
 -- Functions that return RDF Graphs are listed here
-Func : filter '(' FilterEl ',' FilterEl ',' LiteralList ')' { Filter $3 $5 $7 }
+Func : filter Combinations                                  { Filter $2 }
      | map '('Cond')'                                       { Map $3}
      | union SList                                          { Union $2 }
      | join '('Node',' Node')' SList                        { NormalJoin $3 $5 $7 }
      | join JoinOption '('Node',' Node')' SList             { Join $2 $4 $6 $8 }
      | add '(' Url ',' Url ',' Literal ')'                  { AddTrip $3 $5 $7 }
      
+Combinations : '(' FilterEl ',' FilterEl ',' LiteralList ')'   { TTLComb $2 $4 $6 }
+             | '['CombinationLst']'                            { TTLCombs $2 }
+
+CombinationLst : '(' FilterEl ',' FilterEl ',' LiteralList ')'                       { SingleFilter $2 $4 $6 }
+               | '(' FilterEl ',' FilterEl ',' LiteralList ')' ',' CombinationLst    { FilterSeq $2 $4 $6 $9 }
+
 -- DONE
 -- The parameters allowed in the filter function
 FilterEl : '_'                                              { Any }
@@ -465,6 +471,14 @@ data UrlList = SimpleUrl Url | UrlSeq Url UrlList
 data FilterEl = Any | FilteredList UrlList
      deriving Show
 
+-- Add readme
+data Combinations = TTLComb FilterEl FilterEl LiteralList | TTLCombs CombinationLst
+     deriving Show
+
+-- Add readme
+data CombinationLst = SingleFilter FilterEl FilterEl LiteralList | FilterSeq FilterEl FilterEl LiteralList CombinationLst
+     deriving Show
+
 data Literal = IntLit IntExp | BoolLit BoolExp | StrLit StringExp | UrlLit Url  
      deriving Show
 
@@ -474,8 +488,10 @@ data LiteralList = LiteralLst LiteralElems | AnyLit
 data LiteralElems = LiteralSeq Literal LiteralElems | SingleLit Literal 
      deriving Show
 
+-- Readme changes:
+--   a) Change Filter
 data Func = Map Cond | Union SList | NormalJoin Node Node SList | Join JoinOption Node Node SList |
-            Filter FilterEl FilterEl LiteralList | AddTrip Url Url Literal
+            Filter Combinations | AddTrip Url Url Literal
      deriving Show     
 
 

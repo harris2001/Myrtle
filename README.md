@@ -30,7 +30,7 @@ union ["foo.tll",'testing.tll'] "foo.tll"
 #### Step 4: 
 > Run parser with runghc command and provide the file where you have written your code as an argument
 ```
-$ runghc Main.hs script.q
+$ runghc Stql.hs pr1.stql
 ```
 
 
