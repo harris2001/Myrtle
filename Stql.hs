@@ -157,11 +157,11 @@ mapBackend graph cond env = concat $ map (evalCond cond env []) graph
 
 evalCond :: Cond -> [Env] -> [TTLTriplet] -> TTLTriplet -> [TTLTriplet]
 evalCond (Always (AssignSubj _ (NewUrl url))) _ acc (Triplet _ po) = ((Triplet (Sbj (FinalUrl url)) po):acc)
-evalCond (Always (AssignPred _ (NewUrl url))) _ acc (Triplet s (PredObj _ o)) = ((Triplet s (PredObj (TTLPred (FinalUrl url)) o)):acc)
-evalCond (Always (AssignObjUrl _ (NewUrl url))) _ acc (Triplet s (PredObj p _)) = ((Triplet s (PredObj p (UrlObj (FinalUrl url)))):acc)
-evalCond (Always (AssignObjStr _ (QString str))) _ acc (Triplet s (PredObj p _)) = ((Triplet s (PredObj p (StrObj str))):acc)
-evalCond (Always (AssignObjInt _ intexp)) env acc t@(Triplet s (PredObj p o)) | isIntObj o && isIntEval intexp = ((Triplet s (PredObj p (IntObj (evalIntExp intexp env o)))):acc)
-evalCond (Always (AssignObjBool _ boolexp)) env acc t@(Triplet s (PredObj p o)) | isBoolEval boolexp = ((Triplet s (PredObj p (TTLBoolObj (evalBoolObj boolexp env o)))):acc) 
+evalCond (Always (AssignPred _ (NewUrl url))) _ acc (Triplet s (PredObj _ o)) = safeInit acc ++ [Triplet s (PredObj (TTLPred (FinalUrl url)) o)]
+evalCond (Always (AssignObjUrl _ (NewUrl url))) _ acc (Triplet s (PredObj p _)) = safeInit acc ++ [Triplet s (PredObj p (UrlObj (FinalUrl url)))]
+evalCond (Always (AssignObjStr _ (QString str))) _ acc (Triplet s (PredObj p _)) = safeInit acc ++ [Triplet s (PredObj p (StrObj str))]
+evalCond (Always (AssignObjInt _ intexp)) env acc t@(Triplet s (PredObj p o)) | isIntObj o && isIntEval intexp = safeInit acc ++ [Triplet s (PredObj p (IntObj (evalIntExp intexp env o)))]
+evalCond (Always (AssignObjBool _ boolexp)) env acc t@(Triplet s (PredObj p o)) | isBoolEval boolexp = safeInit acc ++ [Triplet s (PredObj p (TTLBoolObj (evalBoolObj boolexp env o)))] 
 evalCond (Always (AddSPO (NewUrl x) (NewUrl y) o)) env acc _ = ((Triplet (Sbj (FinalUrl x)) (PredObj (TTLPred (FinalUrl y)) (litToObj o env))):acc)
 evalCond (Always (AddPO (NewUrl x) o)) env acc trip = ((Triplet (projSubjO trip) (PredObj (TTLPred (FinalUrl x)) (litToObj o env))):acc)
 evalCond (Always (AddSO (NewUrl x) o)) env acc trip = ((Triplet (Sbj (FinalUrl x)) (PredObj (projPredO trip) (litToObj o env))):acc)
@@ -169,10 +169,15 @@ evalCond (Always (AddSP (NewUrl x) (NewUrl y))) env acc trip = ((Triplet (Sbj (F
 evalCond (Always (AddS (NewUrl x))) env acc trip = ((Triplet (Sbj (FinalUrl x)) (PredObj (projPredO trip) (projObjO trip))):acc)
 evalCond (Always (AddP (NewUrl x))) env acc trip = ((Triplet (projSubjO trip) (PredObj (TTLPred (FinalUrl x)) (projObjO trip))):acc)
 evalCond (Always Add) env acc trip = ((Triplet (projSubjO trip) (PredObj (projPredO trip) (projObjO trip))):acc)
-evalCond (ActionSeq action cond) env acc triplet = evalCond cond env (evalCond (Always action) env acc triplet) triplet
+evalCond (ActionSeq action cond) env acc triplet = evalCond cond env (inter) (last inter)
+    where inter = (evalCond (Always action) env acc triplet)
 evalCond (If boolexp condTrue condFalse) env acc t@(Triplet _ (PredObj _ o)) | evalBoolObj boolexp env o = evalCond condTrue env acc t
                                                                              | otherwise = evalCond condFalse env acc t
 evalCond _ _ _ triplet = [triplet]
+
+safeInit :: [a] -> [a]
+safeInit [] = []
+safeInit l = init l
 
 projSubjO :: TTLTriplet -> TTLSubject
 projSubjO (Triplet s predObj) = s

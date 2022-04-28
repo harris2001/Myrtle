@@ -175,6 +175,22 @@ isIntEval (ExpoVV _ _) = True
 isIntEval (QInt _) = True
 isIntEval (NegateI _) = True
 isIntEval LengthObj = True
+isIntEval (PlusOI _ _) = True
+isIntEval (PlusIO _ _) = True
+isIntEval (PlusOO _ _) = True
+isIntEval (MinusOI _ _) = True
+isIntEval (MinusIO _ _) = True
+isIntEval (MinusOO _ _) = True
+isIntEval (TimesOI _ _) = True
+isIntEval (TimesIO _ _) = True
+isIntEval (TimesOO _ _) = True
+isIntEval (DivOI _ _) = True
+isIntEval (DivIO _ _) = True
+isIntEval (DivOO _ _) = True
+isIntEval (ExpoOI _ _) = True
+isIntEval (ExpoIO _ _) = True
+isIntEval (ExpoOO _ _) = True
+isIntEval (NegateO _) = True
 isIntEval _ = False
 
 evalIntExp :: IntExp -> [Env] -> (TTLObject -> Int)

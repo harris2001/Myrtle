@@ -1,2 +1,1 @@
-"fooProb5.ttl" | map ((obj < 0 and obj > 99)? pred = <http://www.cw.org/problem5/#inRange>, obj = false : obj = obj + 1, add (subj, <http://www.cw.org/problem5/#inRange>, true))
-   where u = <http://www.cw.org/problem5/#inRange>
+"fooProb5.ttl" | map ((obj < 0 or obj > 99)? pred = <http://www.cw.org/problem5/#inRange>, obj = false : obj = obj + 1, add (subj, <http://www.cw.org/problem5/#inRange>, true))
