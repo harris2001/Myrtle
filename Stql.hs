@@ -42,10 +42,11 @@ main = do
 evalQuery :: Query -> IO ()
 evalQuery (OutputQuery inp q) = do graph <- (return_rdf (uniq (processingSlist (StrListSingle inp))))
                                    triplets <-(evalFilteredQ q (head graph))
-                                   putStr (printerTTLGraph (sortTriplets triplets))
+                                   let res = (printerTTLGraph (sortTriplets triplets))
+                                   putStr (concat $intersperse "\n" $nub (splitOn '\n' res [""]))
 evalQuery (WriteQuery inp q f) = do graph <- (return_rdf (uniq (processingSlist (StrListSingle inp))))
                                     triplets <-(evalFilteredQ q (head graph))
-                                    writeFile f (nub(printerTTLGraph(sortTriplets triplets)))
+                                    writeFile f (printerTTLGraph(sortTriplets triplets))
 
 --If there are any environment variables in the query, they are passed in the query before it's executed
 evalFilteredQ :: FilteredQuery -> [TTLTriplet] -> IO ([TTLTriplet])
@@ -93,6 +94,17 @@ evalFunc (Filter(TTLCombs(FilterSeq filterSubj filterPred list combs))) tri env 
                                                                                      t2 <- evalFunc (Filter(TTLCombs combs)) tri env
                                                                                      return (t1++t2)
 evalFunc (Map cond) tri env = return (mapBackend tri cond env)
+evalFunc (Join LeftJoin n1 n2 slist) tri env = do graphs <- (return_rdf (uniq (processingSlist slist)))
+                                                  let joined = (map (joinBackend tri n1 n2 ) graphs)
+                                                  print joined 
+                                                  return (union_backend joined) 
+projSubj :: TTLTriplet -> MyrtleParser.Url
+projSubj (Triplet (Sbj (FinalUrl u)) predObj) = NewUrl u 
+projPred :: TTLTriplet -> MyrtleParser.Url
+projPred (Triplet subj (PredObj (TTLPred (FinalUrl u)) obj)) = NewUrl u 
+projObj :: TTLTriplet -> MyrtleParser.Url
+projObj (Triplet subj (PredObj _ (UrlObj (FinalUrl u)))) = NewUrl u 
+-- projObj _ = New
 
 -- Takes a list of turtle files and prints them
 print_rdf :: [String] -> IO String
@@ -139,7 +151,7 @@ union_backend (x:xs) = x++union_backend xs
 
 -- Filter_Backend: 
 filterBackend :: [TTLTriplet] -> [Env] -> (FilterEl, FilterEl, LiteralList) -> [TTLTriplet]
-filterBackend [] env (_,_,_)= [] --error "Query GET needs to be passed a file to execute \n Specify file by SELECT FROM \"$filename.ttl\""
+filterBackend [] env (_,_,_) = [] --error "Query GET needs to be passed a file to execute \n Specify file by SELECT FROM \"$filename.ttl\""
 filterBackend (tri@(Triplet (Sbj subj)(PredObj (TTLPred pred) obj)):xs) env (s,p,o) | ( ((anything s) || (elem (getUrl subj) (filterToList s))) && ((anything p) || (elem (getUrl pred) (filterToList p))) && ((anythinglit o) || (filterObjectList obj o env)))  = [tri]++(filterBackend xs env (s,p,o))
                                                                                     | otherwise = filterBackend xs env (s,p,o)
 
@@ -193,6 +205,17 @@ litToObj (IntLit o) env = IntObj (evalInt o env)
 litToObj (BoolLit o) env = TTLBoolObj (evalSimpleBool o env)
 litToObj (StrLit o) env = StrObj (evalSimpleStr o env)
 litToObj (UrlLit o) env = UrlObj (FinalUrl (evalUrl o env))
+
+joinBackend :: [TTLTriplet] -> Node -> Node -> ([TTLTriplet] -> [TTLTriplet])
+joinBackend baseTTL (S Subj) (S Subj) = (\tr -> concat[ [t]++[x] | x<-baseTTL, t<-tr, (projSubj x)==(projSubj t)])
+joinBackend baseTTL (S Subj) (P Pred) = (\tr -> concat[ [t]++[x] | x<-baseTTL, t<-tr, (projSubj x)==(projPred t)])
+joinBackend baseTTL (S Subj) (O Obj ) = (\tr -> concat[ [t]++[x] | x<-baseTTL, t<-tr, (projSubj x)==(projObj  t)])
+joinBackend baseTTL (P Pred) (S Subj) = (\tr -> concat[ [t]++[x] | x<-baseTTL, t<-tr, (projPred x)==(projSubj t)])
+joinBackend baseTTL (P Pred) (P Pred) = (\tr -> concat[ [t]++[x] | x<-baseTTL, t<-tr, (projPred x)==(projPred t)])
+joinBackend baseTTL (P Pred) (O Obj ) = (\tr -> concat[ [t]++[x] | x<-baseTTL, t<-tr, (projPred x)==(projObj  t)])
+joinBackend baseTTL (O Obj ) (S Subj) = (\tr -> concat[ [t]++[x] | x<-baseTTL, t<-tr, (projObj  x)==(projSubj t)])
+joinBackend baseTTL (O Obj ) (P Pred) = (\tr -> concat[ [t]++[x] | x<-baseTTL, t<-tr, (projObj  x)==(projPred t)])
+joinBackend baseTTL (O Obj ) (O Obj ) = (\tr -> concat[ [t]++[x] | x<-baseTTL, t<-tr, (projObj  x)==(projObj  t)])
 
 --Returns true if all subjects/objects are allowed ('_')
 anything :: FilterEl -> Bool

@@ -93,7 +93,6 @@ CreateVar : var '=' IntExp                                  { IntVar $1 $3 }
 Func : filter Combinations                                  { Filter $2 }
      | map '('Cond')'                                       { Map $3}
      | union SList                                          { Union $2 }
-     | join '('Node',' Node')' SList                        { NormalJoin $3 $5 $7 }
      | join JoinOption '('Node',' Node')' SList             { Join $2 $4 $6 $8 }
      | add '(' Url ',' Url ',' Literal ')'                  { AddTripSPO $3 $5 $7 }
      | add '(' subj ',' Url ',' Literal ')'                 { AddTripPO $5 $7 }
@@ -476,7 +475,7 @@ data JoinOption = BidirectJoin | LeftJoin | RightJoin
      deriving Show
 
 data Url = NewUrl String
-     deriving Show
+     deriving (Show,Eq)
 
 data UrlList = SimpleUrl Url | UrlSeq Url UrlList
      deriving Show
