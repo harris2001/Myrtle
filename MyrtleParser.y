@@ -88,7 +88,7 @@ CreateVars : CreateVar                                      { UVarEnv $1 }
 CreateVar : var '=' IntExp                                  { IntVar $1 $3 }
           | var '=' StringExp                               { StringVar $1 $3 }
           | var '=' BoolExp                                 { BoolVar $1 $3 }
-
+          | var '=' Url                                     { UrlVar $1 $3}
 -- Functions that return RDF Graphs are listed here
 Func : filter '(' FilterEl ',' FilterEl ',' LiteralList ')' { Filter $3 $5 $7 }
      | map '('Cond')'                                       { Map $3}
@@ -430,7 +430,7 @@ data SList = StrList SListElem | StrListSingle String
 data SListElem = SListEl String | SListSeq String SListElem
      deriving Show
      
-data CreateVar = IntVar String IntExp | BoolVar String BoolExp | StringVar String StringExp
+data CreateVar = IntVar String IntExp | BoolVar String BoolExp | StringVar String StringExp | UrlVar String Url
      deriving Show
      
 data CreateVars = UVarEnv CreateVar | VarEnv CreateVar CreateVars

@@ -10,7 +10,7 @@ import System.IO
 import Data.List
 import Data.Ord
 
-import EvalBool
+import Eval
 ---------------------------------------------------------------------------------
 -------------------------------------- Main -------------------------------------
 ---------------------------------------------------------------------------------
@@ -58,19 +58,22 @@ printAssignments :: [Env] -> TTLObject -> IO ()
 printAssignments [] _ = putStr ""
 printAssignments ((str,IntVarAss intexp):env) obj = do putStr (str++": ")
                                                        print intexp
-                                                       print $ length env
                                                        printAssignments env obj
                                                        
 printAssignments ((str,BoolVarAss boolexp):env) obj = do putStr (str++": ")
                                                          if boolexp == True 
                                                             then
-                                                                 print "True"
+                                                                 putStr "true\n"
                                                             else
-                                                                 print "False"
-
+                                                                 putStr "false\n"
+                                                         printAssignments env obj
 printAssignments ((str,StringVarAss strexp):env) obj = do putStr (str++": ")
                                                           print strexp
                                                           printAssignments env obj
+
+printAssignments ((str,UrlVarAss url):env) obj = do putStr (str++": ")
+                                                    print $ evalUrl url []
+                                                    printAssignments env obj
 
 -- printAssignments ((str,StringVarAss str):env) = do print "("++str++","++evalString(str)++")"
 
@@ -109,9 +112,14 @@ assign_vars (VarEnv var vars) envs = assign_vars vars (newVar)
         where newVar = assign_var var envs
 
 assign_var :: CreateVar -> [Env] -> [Env]
-assign_var (IntVar str intexp) envs = envs ++ [(str,IntVarAss (evalInt intexp envs))]
-assign_var (BoolVar str boolexp) envs = envs ++ [(str,BoolVarAss (evalSimpleBool boolexp envs))]
-assign_var (StringVar str val) envs = envs ++ [(str,StringVarAss (evalSimpleStr val envs))]
+assign_var (IntVar str intexp) envs | elem str $ map fst envs = error ("Multiple declarations of "++show str)
+                                    | otherwise = envs ++ [(str,IntVarAss (evalInt intexp envs))]
+assign_var (BoolVar str boolexp) envs| elem str $map fst envs = error ("Multiple declarations of "++show str)
+                                     | otherwise = envs ++ [(str,BoolVarAss (evalSimpleBool boolexp envs))]
+assign_var (StringVar str val) envs | elem str $map fst envs = error ("Multiple declarations of "++show str)
+                                    | otherwise = envs ++ [(str,StringVarAss (evalSimpleStr val envs))]
+assign_var (UrlVar str val) envs | elem str $map fst envs = error ("Multiple declarations of "++show str)
+                                 | otherwise = envs ++ [(str,UrlVarAss val)]
 
 ------------------------------------------------------------------------------------------------------------------
 --                                             Functions Backend                                                --
@@ -135,10 +143,7 @@ filterObjectList obj (LiteralLst(LiteralSeq lit lits)) env = (filterObject obj l
 filterObjectList obj (LiteralLst(SingleLit lit)) env = filterObject obj lit env
 
 filterObject :: TTLObject -> Literal -> [Env] -> Bool
-filterObject (UrlObj (FinalUrl url)) (UrlLit (NewUrl url2)) env = url==url2
-filterObject obj@(IntObj int) (BoolLit boolexp) env = (evalBoolObj boolexp env) obj 
-filterObject obj@(TTLBoolObj bool) (BoolLit boolexp) env  = (evalBoolObj boolexp env) obj
-filterObject obj@(StrObj str) (StrLit str2) env = str == (evalSimpleStr str2 env) 
+filterObject obj(BoolLit boolexp) env = (evalBoolObj boolexp env) obj 
 filterObject _ _ _ = False
 
 --Returns true if all subjects/objects are allowed ('_')
