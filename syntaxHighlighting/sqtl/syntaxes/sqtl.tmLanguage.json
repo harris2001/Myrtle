@@ -30,11 +30,11 @@
 					"match": "\\\\."
 				}
 			]
-		},"#parentheses":{
+		},"parentheses":{
 			"patterns": [
 				{
-					"name": "comment.line.double-slash",
-					"match": "(\\(|\\)|\\[|\\])"
+					"name": "support.function.git-rebase",
+					"match": "\\(|\\)|\\[|\\]"
 
 				}
 			]
@@ -43,7 +43,7 @@
 		"operators":{
 			"patterns": [
 				{
-					"match": "(\\s|\\(|\\[)?(true|false|obj|subj|pred)(\\s|\\)|\\])",
+					"match": "(true|false|obj|subj|pred)",
 					"name": "variable.parameter"
 				}
 			]
@@ -51,13 +51,13 @@
 		"keywords": {
 			"patterns": [{
 				"name": "keyword.control.sqtl",
-				"match": "(\\s|\\(|\\[)?(and|or|where)(\\s|\\)|\\])"
+				"match": "(and|or|where)"
 			}]
 		},
 		"functions":{
 			"patterns": [{
 				"name":"entity.name.function",
-				"match" : "(filter|map|union|join|add|length|startWith)"
+				"match" : "(filter|map|union|join|add|length|startsWith)"
 			}]
 		}		
 	},
