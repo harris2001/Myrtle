@@ -97,13 +97,6 @@ Func : filter Combinations                                  { Filter $2 }
      | union SList                                          { Union $2 }
      | join JoinOption '('Node',' Node')' SList             { Join $2 $4 $6 $8 }
      | add '(' Url ',' Url ',' Literal ')'                  { AddTripSPO $3 $5 $7 }
-     | add '(' subj ',' Url ',' Literal ')'                 { AddTripPO $5 $7 }
-     | add '(' Url ',' pred ',' Literal ')'                 { AddTripSO $3 $7 }
-     | add '(' Url ',' Url ',' obj ')'                      { AddTripSP $3 $5 }
-     | add '(' Url ',' pred ',' obj ')'                     { AddTripS $3 }
-     | add '(' subj ',' Url ',' obj ')'                     { AddTripP $5 }
-     | add '(' subj ',' pred ',' Literal ')'                { AddTripO $7 }
-     | add '(' subj ',' pred ',' obj ')'                    { AddTrip }
      
 Combinations : '(' FilterEl ',' FilterEl ',' LiteralList ')'   { TTLComb $2 $4 $6 }
              | '['CombinationLst']'                            { TTLCombs $2 }
@@ -505,7 +498,7 @@ data LiteralElems = LiteralSeq Literal LiteralElems | SingleLit Literal
 -- Readme changes:
 --   a) Change Filter
 data Func = Map Cond | Union SList | NormalJoin Node Node SList | Join JoinOption Node Node SList |
-            Filter Combinations | AddTripSPO Url Url Literal | AddTripPO Url Literal | AddTripSO Url Literal | AddTripSP Url Url | AddTripS Url | AddTripP Url | AddTripO Literal | AddTrip
+            Filter Combinations | AddTripSPO Url Url Literal
      deriving Show     
 
 

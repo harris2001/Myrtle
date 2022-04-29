@@ -108,6 +108,8 @@ evalFunc (Join RightJoin n1 n2 slist) tri env = do graphs <- (return_rdf (uniq (
 evalFunc (Join BidirectJoin n1 n2 slist) tri env = do tr1 <- evalFunc (Join RightJoin n1 n2 slist) tri env
                                                       tr2 <- evalFunc (Join LeftJoin n1 n2 slist) tri env
                                                       return (concat([tr1]++[tr2]))
+evalFunc (AddTripSPO url1 url2 literal) tri env = return $ addBackend url1 url2 literal tri env
+
 projSubj :: TTLTriplet -> MyrtleParser.Url
 projSubj (Triplet (Sbj (FinalUrl u)) predObj) = NewUrl u 
 projPred :: TTLTriplet -> MyrtleParser.Url
@@ -226,6 +228,10 @@ joinBackend baseTTL (P Pred) (O Obj ) = (\tr -> concat[ [t]++[x] | x<-baseTTL, t
 joinBackend baseTTL (O Obj ) (S Subj) = (\tr -> concat[ [t]++[x] | x<-baseTTL, t<-tr, (projObj  x)==(projSubj t) ])
 joinBackend baseTTL (O Obj ) (P Pred) = (\tr -> concat[ [t]++[x] | x<-baseTTL, t<-tr, (projObj  x)==(projPred t) ])
 joinBackend baseTTL (O Obj ) (O Obj ) = (\tr -> concat[ [t]++[x] | x<-baseTTL, t<-tr, (projObj  x)==(projObj  t) ])
+
+-- Add function backend
+addBackend :: MyrtleParser.Url -> MyrtleParser.Url -> Literal -> [TTLTriplet] -> [Env] -> [TTLTriplet]
+addBackend (NewUrl u1) (NewUrl u2) literal triplets env = (Triplet (Sbj (FinalUrl u1)) (PredObj (TTLPred (FinalUrl u2)) (litToObj literal env))):triplets
 
 --Returns true if all subjects/objects are allowed ('_')
 anything :: FilterEl -> Bool
