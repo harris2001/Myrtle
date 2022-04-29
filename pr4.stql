@@ -1,1 +1,1 @@
-"foo.ttl" | join -l (subj,subj) ['bar.ttl']
+"foo.ttl" | join -l -r (subj, obj) ['bar.ttl']

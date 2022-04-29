@@ -1,0 +1,65 @@
+{
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"name": "SQTL Programming Language",
+	"patterns": [
+		{
+			"include": "#strings"
+		},
+		{
+			"include": "#parentheses"
+		},
+		{
+			"include": "#operators"
+		},
+		{
+			"include": "#keywords"
+		},
+		{
+			"include": "#functions"
+		}
+	],
+	"repository": 
+	{
+		"strings":{
+			"name":"string.quoted.double.sqtl",
+			"begin": "\"",
+			"end": "\"",
+			"patterns": [
+				{
+					"name":"constant.character.escape.sqtl",
+					"match": "\\\\."
+				}
+			]
+		},"parentheses":{
+			"patterns": [
+				{
+					"name": "support.function.git-rebase",
+					"match": "\\(|\\)|\\[|\\]"
+
+				}
+			]
+		},
+		
+		"operators":{
+			"patterns": [
+				{
+					"match": "(true|false|obj|subj|pred)",
+					"name": "variable.parameter"
+				}
+			]
+		},
+		"keywords": {
+			"patterns": [{
+				"name": "keyword.control.sqtl",
+				"match": "(and|or|where)"
+			}]
+		},
+		"functions":{
+			"patterns": [{
+				"name":"entity.name.function",
+				"match" : "(filter|map|union|join|add|length|startsWith)"
+			}]
+		}		
+	},
+	"scopeName": "source.sqtl"
+}

@@ -1,0 +1,1 @@
+"foo.ttl" | filter ([<http://www.cw.org/#problem2>],_,[obj == true])  

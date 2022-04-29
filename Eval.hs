@@ -151,47 +151,6 @@ evalInt (NegateI x) env = (-1*(evalInt x env))
 evalInt (Length str) _ = length(str)
 evalInt _ _ = error "Syntax error inside where clause"
 
-isIntEval :: IntExp -> Bool
-isIntEval (PlusII _ _) = True
-isIntEval (PlusVI _ _) = True
-isIntEval (PlusIV _ _) = True
-isIntEval (PlusVV _ _) = True
-isIntEval (MinusII _ _) = True
-isIntEval (MinusVI _ _) = True
-isIntEval (MinusIV _ _) = True
-isIntEval (MinusVV _ _) = True
-isIntEval (TimesII _ _) = True
-isIntEval (TimesVI _ _) = True
-isIntEval (TimesIV _ _) = True
-isIntEval (TimesVV _ _) = True
-isIntEval (DivII _ _) = True
-isIntEval (DivVI _ _) = True
-isIntEval (DivIV _ _) = True
-isIntEval (DivVV _ _) = True
-isIntEval (ExpoII _ _) = True
-isIntEval (ExpoVI _ _) = True
-isIntEval (ExpoIV _ _) = True
-isIntEval (ExpoVV _ _) = True
-isIntEval (QInt _) = True
-isIntEval (NegateI _) = True
-isIntEval LengthObj = True
-isIntEval (PlusOI _ _) = True
-isIntEval (PlusIO _ _) = True
-isIntEval (PlusOO _ _) = True
-isIntEval (MinusOI _ _) = True
-isIntEval (MinusIO _ _) = True
-isIntEval (MinusOO _ _) = True
-isIntEval (TimesOI _ _) = True
-isIntEval (TimesIO _ _) = True
-isIntEval (TimesOO _ _) = True
-isIntEval (DivOI _ _) = True
-isIntEval (DivIO _ _) = True
-isIntEval (DivOO _ _) = True
-isIntEval (ExpoOI _ _) = True
-isIntEval (ExpoIO _ _) = True
-isIntEval (ExpoOO _ _) = True
-isIntEval (NegateO _) = True
-isIntEval _ = False
 
 evalIntExp :: IntExp -> [Env] -> (TTLObject -> Int)
 evalIntExp (PlusOI _ x) env = \o -> ((getIntObj o) + ((evalIntExp x env)o))
@@ -237,34 +196,6 @@ isStrObj _ = False
 --------------------------------------------------------------------------------------
 --                        Getting the type of an expression                         --
 --------------------------------------------------------------------------------------
-
--- isIntEval :: IntExp -> Bool
--- isIntEval (PlusOI _ x) = True
--- isIntEval (PlusIO x _) = True
--- isIntEval (PlusOO _ _) = True
--- isIntEval (MinusOI _ x) = True
--- isIntEval (MinusIO x _) = True
--- isIntEval (MinusOO _ _) = True
--- isIntEval (TimesOI _ x) = True
--- isIntEval (TimesIO x _) = True
--- isIntEval (TimesOO _ _) = True
--- isIntEval (DivOI _ x) = True
--- isIntEval (DivIO x _) = True
--- isIntEval (DivOO _ _) = True
--- isIntEval (ExpoOI _ x) = True
--- isIntEval (ExpoIO x _) = True
--- isIntEval (ExpoOO _ _) = True
--- isIntEval (NegateO _) = True
--- isIntEval (PlusII _ _ )  = True
--- isIntEval (MinusII _ _ ) = True
--- isIntEval (TimesII _ _ ) = True
--- isIntEval (DivII _ _ ) = True
--- isIntEval (ExpoII _ _ ) = True
--- isIntEval (QInt _ ) = True
--- isIntEval (NegateI _ ) = True
--- isIntEval (IntVariable _ ) = True
--- isIntEval _ = False
--- isIntEval _ = False
 
 isBoolEval :: BoolExp -> Bool
 isBoolEval QTrue = True
@@ -313,21 +244,48 @@ isBoolEval (EQOU _) = True
 isBoolEval (EQUO _) = True
 isBoolEval _ = False
 
--- isStrEval :: BoolExp -> Bool
--- isStrEval (EQSS _ _) = True
--- isStrEval (EQSO _ _) = True
--- isStrEval (EQOS _ _) = True
--- isStrEval _ = False
 
--- isUrlEval :: BoolExp -> Bool
--- isUrlEval (EQUU _ _ ) = True
--- isUrlEval (EQSU _ _ ) = True
--- isUrlEval (EQUS _ _ ) = True
--- isUrlEval (EQPU _ _ ) = True
--- isUrlEval (EQUP _ _ ) = True
--- isUrlEval (EQOU _ _ ) = True
--- isUrlEval (EQUO _ _ ) = True
--- isUrlEval _ = False
+isIntEval :: IntExp -> Bool
+isIntEval (PlusII _ _) = True
+isIntEval (PlusVI _ _) = True
+isIntEval (PlusIV _ _) = True
+isIntEval (PlusVV _ _) = True
+isIntEval (MinusII _ _) = True
+isIntEval (MinusVI _ _) = True
+isIntEval (MinusIV _ _) = True
+isIntEval (MinusVV _ _) = True
+isIntEval (TimesII _ _) = True
+isIntEval (TimesVI _ _) = True
+isIntEval (TimesIV _ _) = True
+isIntEval (TimesVV _ _) = True
+isIntEval (DivII _ _) = True
+isIntEval (DivVI _ _) = True
+isIntEval (DivIV _ _) = True
+isIntEval (DivVV _ _) = True
+isIntEval (ExpoII _ _) = True
+isIntEval (ExpoVI _ _) = True
+isIntEval (ExpoIV _ _) = True
+isIntEval (ExpoVV _ _) = True
+isIntEval (QInt _) = True
+isIntEval (NegateI _) = True
+isIntEval LengthObj = True
+isIntEval (PlusOI _ _) = True
+isIntEval (PlusIO _ _) = True
+isIntEval (PlusOO _ _) = True
+isIntEval (MinusOI _ _) = True
+isIntEval (MinusIO _ _) = True
+isIntEval (MinusOO _ _) = True
+isIntEval (TimesOI _ _) = True
+isIntEval (TimesIO _ _) = True
+isIntEval (TimesOO _ _) = True
+isIntEval (DivOI _ _) = True
+isIntEval (DivIO _ _) = True
+isIntEval (DivOO _ _) = True
+isIntEval (ExpoOI _ _) = True
+isIntEval (ExpoIO _ _) = True
+isIntEval (ExpoOO _ _) = True
+isIntEval (NegateO _) = True
+isIntEval _ = False
 
 --------------------------------------------------------------------------------------
 --                          Returns the value of a variable                         --

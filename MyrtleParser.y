@@ -39,6 +39,7 @@ import Data.List
   '?'            { TokenQuestion _ }
   ':'            { TokenColon _ }
   '_'            { TokenAll _ }
+  ';'            { TokenSemiColon _ }
   filter         { TokenFilter _ }
   map            { TokenMap _ }
   union          { TokenUnion _ }
@@ -52,7 +53,7 @@ import Data.List
   length         { TokenLength _ }
   startsWith     { TokenStarts _ }
 
-%left "," ";" "."
+%left ';'
 %right var
 %left '='
 %left '+' '-' or
@@ -68,6 +69,7 @@ import Data.List
 -- The user can choose to either print the output of his/her query or save it in a file
 Query : filename '|' FilteredQuery '>''>' filename          { WriteQuery $1 $3 $6 }
       | filename '|' FilteredQuery                          { OutputQuery $1 $3 }
+      | Query ';' Query                                     { QuerySeq $1 $3 }
 
 -- DONE --
 -- Is a basic query with an optional where clause
@@ -455,7 +457,7 @@ data CreateVar = IntVar String IntExp | BoolVar String BoolExp | StringVar Strin
 data CreateVars = UVarEnv CreateVar | VarEnv CreateVar CreateVars
      deriving Show
      
-data Query = OutputQuery String FilteredQuery | WriteQuery String FilteredQuery String
+data Query = OutputQuery String FilteredQuery | WriteQuery String FilteredQuery String | QuerySeq Query Query
      deriving Show
 
 data FilteredQuery = NewQuery BasicQuery | WhereQuery BasicQuery CreateVars

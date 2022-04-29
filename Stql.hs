@@ -22,7 +22,7 @@ main = do
         let tokens = alexScanTokens contents
         -- print(tokens)
         let expression = parseQuery tokens
-        print(expression)
+        -- print(expression)
         evalQuery expression
         
 ---------------------------------------------------------------------------------
@@ -40,6 +40,9 @@ main = do
 
 -- Print query result or write it in file
 evalQuery :: Query -> IO ()
+evalQuery (QuerySeq q1 q2) = do evalQuery q1
+                                evalQuery q2
+                                
 evalQuery (OutputQuery inp q) = do graph <- (return_rdf (uniq (processingSlist (StrListSingle inp))))
                                    triplets <-(evalFilteredQ q (head graph))
                                    let res = (printerTTLGraph (sortTriplets triplets))
@@ -52,7 +55,7 @@ evalQuery (WriteQuery inp q f) = do graph <- (return_rdf (uniq (processingSlist 
 evalFilteredQ :: FilteredQuery -> [TTLTriplet] -> IO ([TTLTriplet])
 evalFilteredQ (NewQuery q) graph = evalSimpleQ q graph []
 evalFilteredQ (WhereQuery q w) graph = do let envs = assign_vars w []
-                                          printAssignments envs (IntObj 2)
+                                        --   printAssignments envs (IntObj 2)
                                           evalSimpleQ q graph envs
 
 printAssignments :: [Env] -> TTLObject -> IO ()
@@ -96,15 +99,22 @@ evalFunc (Filter(TTLCombs(FilterSeq filterSubj filterPred list combs))) tri env 
 evalFunc (Map cond) tri env = return (mapBackend tri cond env)
 evalFunc (Join LeftJoin n1 n2 slist) tri env = do graphs <- (return_rdf (uniq (processingSlist slist)))
                                                   let joined = (map (joinBackend tri n1 n2 ) graphs)
-                                                  print joined 
                                                   return (union_backend joined) 
+evalFunc (Join RightJoin n1 n2 slist) tri env = do graphs <- (return_rdf (uniq (processingSlist slist)))
+                                                   let base = graphs !! ((length graphs)-2)
+                                                   let rest = [tri] ++ take ((length graphs)-2) graphs
+                                                   let joined = (map (joinBackend base n1 n2 ) rest)
+                                                   return $concat joined
+evalFunc (Join BidirectJoin n1 n2 slist) tri env = do tr1 <- evalFunc (Join RightJoin n1 n2 slist) tri env
+                                                      tr2 <- evalFunc (Join LeftJoin n1 n2 slist) tri env
+                                                      return (concat([tr1]++[tr2]))
 projSubj :: TTLTriplet -> MyrtleParser.Url
 projSubj (Triplet (Sbj (FinalUrl u)) predObj) = NewUrl u 
 projPred :: TTLTriplet -> MyrtleParser.Url
 projPred (Triplet subj (PredObj (TTLPred (FinalUrl u)) obj)) = NewUrl u 
 projObj :: TTLTriplet -> MyrtleParser.Url
 projObj (Triplet subj (PredObj _ (UrlObj (FinalUrl u)))) = NewUrl u 
--- projObj _ = New
+projObj x = NewUrl ""
 
 -- Takes a list of turtle files and prints them
 print_rdf :: [String] -> IO String
@@ -207,15 +217,15 @@ litToObj (StrLit o) env = StrObj (evalSimpleStr o env)
 litToObj (UrlLit o) env = UrlObj (FinalUrl (evalUrl o env))
 
 joinBackend :: [TTLTriplet] -> Node -> Node -> ([TTLTriplet] -> [TTLTriplet])
-joinBackend baseTTL (S Subj) (S Subj) = (\tr -> concat[ [t]++[x] | x<-baseTTL, t<-tr, (projSubj x)==(projSubj t)])
-joinBackend baseTTL (S Subj) (P Pred) = (\tr -> concat[ [t]++[x] | x<-baseTTL, t<-tr, (projSubj x)==(projPred t)])
-joinBackend baseTTL (S Subj) (O Obj ) = (\tr -> concat[ [t]++[x] | x<-baseTTL, t<-tr, (projSubj x)==(projObj  t)])
-joinBackend baseTTL (P Pred) (S Subj) = (\tr -> concat[ [t]++[x] | x<-baseTTL, t<-tr, (projPred x)==(projSubj t)])
-joinBackend baseTTL (P Pred) (P Pred) = (\tr -> concat[ [t]++[x] | x<-baseTTL, t<-tr, (projPred x)==(projPred t)])
-joinBackend baseTTL (P Pred) (O Obj ) = (\tr -> concat[ [t]++[x] | x<-baseTTL, t<-tr, (projPred x)==(projObj  t)])
-joinBackend baseTTL (O Obj ) (S Subj) = (\tr -> concat[ [t]++[x] | x<-baseTTL, t<-tr, (projObj  x)==(projSubj t)])
-joinBackend baseTTL (O Obj ) (P Pred) = (\tr -> concat[ [t]++[x] | x<-baseTTL, t<-tr, (projObj  x)==(projPred t)])
-joinBackend baseTTL (O Obj ) (O Obj ) = (\tr -> concat[ [t]++[x] | x<-baseTTL, t<-tr, (projObj  x)==(projObj  t)])
+joinBackend baseTTL (S Subj) (S Subj) = (\tr -> concat[ [t]++[x] | x<-baseTTL, t<-tr, (projSubj x)==(projSubj t) ])
+joinBackend baseTTL (S Subj) (P Pred) = (\tr -> concat[ [t]++[x] | x<-baseTTL, t<-tr, (projSubj x)==(projPred t) ])
+joinBackend baseTTL (S Subj) (O Obj ) = (\tr -> concat[ [t]++[x] | x<-baseTTL, t<-tr, (projSubj x)==(projObj  t) ])
+joinBackend baseTTL (P Pred) (S Subj) = (\tr -> concat[ [t]++[x] | x<-baseTTL, t<-tr, (projPred x)==(projSubj t) ])
+joinBackend baseTTL (P Pred) (P Pred) = (\tr -> concat[ [t]++[x] | x<-baseTTL, t<-tr, (projPred x)==(projPred t) ])
+joinBackend baseTTL (P Pred) (O Obj ) = (\tr -> concat[ [t]++[x] | x<-baseTTL, t<-tr, (projPred x)==(projObj  t) ])
+joinBackend baseTTL (O Obj ) (S Subj) = (\tr -> concat[ [t]++[x] | x<-baseTTL, t<-tr, (projObj  x)==(projSubj t) ])
+joinBackend baseTTL (O Obj ) (P Pred) = (\tr -> concat[ [t]++[x] | x<-baseTTL, t<-tr, (projObj  x)==(projPred t) ])
+joinBackend baseTTL (O Obj ) (O Obj ) = (\tr -> concat[ [t]++[x] | x<-baseTTL, t<-tr, (projObj  x)==(projObj  t) ])
 
 --Returns true if all subjects/objects are allowed ('_')
 anything :: FilterEl -> Bool

@@ -1,0 +1,1 @@
+"foo.ttl" | union ["bar.ttl"]
