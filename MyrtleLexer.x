@@ -40,6 +40,7 @@ $white+       ;
   \:             { tok (\p s -> TokenColon p) }
   \_             { tok (\p s -> TokenAll p) }
   filter         { tok (\p s -> TokenFilter p) }
+  remove         { tok (\p s -> TokenRemove p) }
   map            { tok (\p s -> TokenMap p) }
   union          { tok (\p s -> TokenUnion p) }
   join           { tok (\p s -> TokenJoin p) }
@@ -103,6 +104,7 @@ data LangToken =
   TokenColon AlexPosn                |
   TokenAll AlexPosn                  |
   TokenFilter AlexPosn               |
+  TokenRemove AlexPosn               |
   TokenMap AlexPosn                  |
   TokenUnion AlexPosn                |
   TokenJoin AlexPosn                 |
@@ -153,6 +155,7 @@ tokenPosn (TokenQuestion (AlexPn a l c)) = show(l) ++ ":" ++ show(c)
 tokenPosn (TokenColon (AlexPn a l c)) = show(l) ++ ":" ++ show(c)
 tokenPosn (TokenAll (AlexPn a l c)) = show(l) ++ ":" ++ show(c)
 tokenPosn (TokenFilter (AlexPn a l c)) = show(l) ++ ":" ++ show(c)
+tokenPosn (TokenRemove (AlexPn a l c)) = show(l) ++ ":" ++ show(c)
 tokenPosn (TokenMap (AlexPn a l c)) = show(l) ++ ":" ++ show(c)
 tokenPosn (TokenUnion (AlexPn a l c)) = show(l) ++ ":" ++ show(c)
 tokenPosn (TokenJoin(AlexPn a l c)) = show(l) ++ ":" ++ show(c)

@@ -96,6 +96,11 @@ evalFunc (Filter(TTLCombs(SingleFilter filterSubj filterPred list))) tri env = r
 evalFunc (Filter(TTLCombs(FilterSeq filterSubj filterPred list combs))) tri env = do t1 <- evalFunc (Filter(TTLCombs (SingleFilter filterSubj filterPred list))) tri env
                                                                                      t2 <- evalFunc (Filter(TTLCombs combs)) tri env
                                                                                      return (t1++t2)
+evalFunc (Remove(TTLComb filterSubj filterPred list)) tri env = return (removeBackend tri env (filterSubj, filterPred, list))
+evalFunc (Remove(TTLCombs(SingleFilter filterSubj filterPred list))) tri env = return (removeBackend tri env (filterSubj, filterPred, list))
+evalFunc (Remove(TTLCombs(FilterSeq filterSubj filterPred list combs))) tri env = do t1 <- evalFunc (Remove(TTLCombs (SingleFilter filterSubj filterPred list))) tri env
+                                                                                     t2 <- evalFunc (Remove(TTLCombs combs)) tri env
+                                                                                     return (t1++t2)
 evalFunc (Map cond) tri env = return (mapBackend tri cond env)
 evalFunc (Join LeftJoin n1 n2 slist) tri env = do graphs <- (return_rdf (uniq (processingSlist slist)))
                                                   let joined = (map (joinBackend tri n1 n2 ) graphs)
@@ -166,6 +171,11 @@ filterBackend :: [TTLTriplet] -> [Env] -> (FilterEl, FilterEl, LiteralList) -> [
 filterBackend [] env (_,_,_) = [] --error "Query GET needs to be passed a file to execute \n Specify file by SELECT FROM \"$filename.ttl\""
 filterBackend (tri@(Triplet (Sbj subj)(PredObj (TTLPred pred) obj)):xs) env (s,p,o) | ( ((anything s) || (elem (getUrl subj) (filterToList s))) && ((anything p) || (elem (getUrl pred) (filterToList p))) && ((anythinglit o) || (filterObjectList obj o env)))  = [tri]++(filterBackend xs env (s,p,o))
                                                                                     | otherwise = filterBackend xs env (s,p,o)
+
+removeBackend :: [TTLTriplet] -> [Env] -> (FilterEl, FilterEl, LiteralList) -> [TTLTriplet]
+removeBackend [] env (_,_,_) = [] --error "Query GET needs to be passed a file to execute \n Specify file by SELECT FROM \"$filename.ttl\""
+removeBackend (tri@(Triplet (Sbj subj)(PredObj (TTLPred pred) obj)):xs) env (s,p,o) | ( ((anything s) || (elem (getUrl subj) (filterToList s))) && ((anything p) || (elem (getUrl pred) (filterToList p))) && ((anythinglit o) || (filterObjectList obj o env)))  = removeBackend xs env (s,p,o)
+                                                                                    | otherwise = [tri]++(removeBackend xs env (s,p,o))
 
 filterObjectList :: TTLObject -> LiteralList -> [Env] -> Bool
 filterObjectList obj (LiteralLst(LiteralSeq lit lits)) env = (filterObject obj lit env ) || (filterObjectList obj (LiteralLst lits) env)

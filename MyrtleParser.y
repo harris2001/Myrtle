@@ -41,6 +41,7 @@ import Data.List
   '_'            { TokenAll _ }
   ';'            { TokenSemiColon _ }
   filter         { TokenFilter _ }
+  remove         { TokenRemove _ }
   map            { TokenMap _ }
   union          { TokenUnion _ }
   join           { TokenJoin _ }
@@ -93,6 +94,7 @@ CreateVar : var '=' IntExp                                  { IntVar $1 $3 }
           | var '=' Url                                     { UrlVar $1 $3 }
 -- Functions that return RDF Graphs are listed here
 Func : filter Combinations                                  { Filter $2 }
+     | remove Combinations                                  { Remove $2 }
      | map '('Cond')'                                       { Map $3}
      | union SList                                          { Union $2 }
      | join JoinOption '('Node',' Node')' SList             { Join $2 $4 $6 $8 }
@@ -498,7 +500,7 @@ data LiteralElems = LiteralSeq Literal LiteralElems | SingleLit Literal
 -- Readme changes:
 --   a) Change Filter
 data Func = Map Cond | Union SList | NormalJoin Node Node SList | Join JoinOption Node Node SList |
-            Filter Combinations | AddTripSPO Url Url Literal
+            Filter Combinations | AddTripSPO Url Url Literal | Remove Combinations
      deriving Show     
 
 
