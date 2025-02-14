@@ -1,3 +1,0 @@
-"foo.ttl" | filter (_, [<http://www.cw.org/problem3/#predicate1>,
-                        <http://www.cw.org/problem3/#predicate2>,
-                        <http://www.cw.org/problem3/#predicate3>],_)
